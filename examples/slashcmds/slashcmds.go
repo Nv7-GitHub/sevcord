@@ -59,6 +59,24 @@ func main() {
 					},
 				},
 			},
+			&sevcord.SlashCommand{
+				Name:        "autocomplete",
+				Description: "Test autocomplete",
+				Options: []sevcord.Option{
+					{
+						Name:        "option",
+						Description: "Test command option",
+						Kind:        sevcord.OptionKindString,
+						Required:    true,
+						Autocomplete: func(val any) []sevcord.Choice {
+							return []sevcord.Choice{{Name: "Hey", Value: "Hey"}, {Name: "Hello", Value: "Hello"}, {Name: "Bye", Value: "Bye"}} // Up to 25
+						},
+					},
+				},
+				Handler: func(args []any, ctx sevcord.Ctx) {
+					ctx.Respond(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
+				},
+			},
 		},
 	})
 

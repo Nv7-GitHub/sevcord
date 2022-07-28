@@ -164,18 +164,18 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 	}
 
 	switch i.Type {
-	case discordgo.InteractionApplicationCommand:
-		i := i.ApplicationCommandData()
-		v, exists := c.commands[i.Name]
+	case discordgo.InteractionApplicationCommand, discordgo.InteractionApplicationCommandAutocomplete:
+		dat := i.ApplicationCommandData()
+		v, exists := c.commands[dat.Name]
 		if !exists {
 			return
 		}
-		cmdOpts := i.Options
+		cmdOpts := dat.Options
 		if v.isGroup() {
 			var opt *discordgo.ApplicationCommandInteractionDataOption
 			for v.isGroup() {
 				if opt == nil {
-					opt = i.Options[0]
+					opt = dat.Options[0]
 				} else {
 					cmdOpts = opt.Options
 					opt = opt.Options[0]
@@ -191,9 +191,37 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 			}
 		}
 
-		opts := make(map[string]any, len(i.Options))
+		// If autocomplete
+		if i.Type == discordgo.InteractionApplicationCommandAutocomplete {
+			for _, opt := range cmdOpts {
+				if opt.Focused {
+					for _, vopt := range v.(*SlashCommand).Options {
+						if opt.Name == vopt.Name {
+							res := vopt.Autocomplete(optToAny(opt, dat))
+							choices := make([]*discordgo.ApplicationCommandOptionChoice, len(res))
+							for i, choice := range res {
+								choices[i] = &discordgo.ApplicationCommandOptionChoice{
+									Name:  choice.Name,
+									Value: choice.Value,
+								}
+							}
+
+							s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+								Type: discordgo.InteractionApplicationCommandAutocompleteResult,
+								Data: &discordgo.InteractionResponseData{
+									Choices: choices,
+								},
+							})
+							return
+						}
+					}
+				}
+			}
+		}
+
+		opts := make(map[string]any, len(dat.Options))
 		for _, opt := range cmdOpts {
-			opts[opt.Name] = optToAny(opt, i)
+			opts[opt.Name] = optToAny(opt, dat)
 		}
 
 		pars := make([]any, len(v.(*SlashCommand).Options))
