@@ -37,7 +37,7 @@ func main() {
 								Required:    true,
 							},
 						},
-						Handler: func(args []interface{}, ctx sevcord.Ctx) {
+						Handler: func(args []any, ctx sevcord.Ctx) {
 							ctx.Acknowledge()
 							ctx.Respond(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
 						},
@@ -53,7 +53,7 @@ func main() {
 								Required:    true,
 							},
 						},
-						Handler: func(args []interface{}, ctx sevcord.Ctx) {
+						Handler: func(args []any, ctx sevcord.Ctx) {
 							ctx.Respond(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
 						},
 					},
