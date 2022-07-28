@@ -3,31 +3,33 @@ package sevcord
 import "github.com/bwmarrin/discordgo"
 
 type Client struct {
-	dg    *discordgo.Session
-	appID string
+	dg *discordgo.Session
 
-	commands map[string]slashCommandHandleable
+	commands map[string]SlashCommandObject
 }
 
-func NewClient(appID string, token string) (*Client, error) {
+func NewClient(token string) (*Client, error) {
 	dg, err := discordgo.New("Bot " + token)
+	if err != nil {
+		return nil, err
+	}
+	err = dg.Open()
 	if err != nil {
 		return nil, err
 	}
 	return &Client{
 		dg:       dg,
-		appID:    appID,
-		commands: make(map[string]slashCommandHandleable),
+		commands: make(map[string]SlashCommandObject),
 	}, nil
 }
 
-type slashCommandHandleable interface {
+type SlashCommandObject interface {
 	name() string
 	build() *discordgo.ApplicationCommandOption
 	isGroup() bool
 }
 
-func (c *Client) HandleSlashCommand(cmd slashCommandHandleable) {
+func (c *Client) HandleSlashCommand(cmd SlashCommandObject) {
 	c.commands[cmd.name()] = cmd
 }
 
@@ -46,11 +48,12 @@ func (c *Client) Start() error {
 			Type:        discordgo.ChatApplicationCommand,
 		})
 	}
-	_, err := c.dg.ApplicationCommandBulkOverwrite(c.appID, "", cmds)
-	if err != nil {
-		return err
-	}
-	return c.dg.Open()
+	_, err := c.dg.ApplicationCommandBulkOverwrite(c.dg.State.User.ID, "", cmds)
+	return err
+}
+
+func (c *Client) Close() error {
+	return c.dg.Close()
 }
 
 // TODO: Embed builder, component builder, message commands
@@ -67,6 +70,6 @@ func MessageResponse(message string) *Response {
 
 type Ctx interface {
 	Acknowledge()
-	Respond(Response)
+	Respond(*Response)
 	Guild() string
 }

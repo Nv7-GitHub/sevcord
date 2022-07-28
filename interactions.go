@@ -1,12 +1,14 @@
 package sevcord
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"github.com/bwmarrin/discordgo"
+)
 
 // NOTE: Can only have 2 of these and then a command
 type SlashCommandGroup struct {
 	Name        string
 	Description string
-	Children    []slashCommandHandleable
+	Children    []SlashCommandObject
 }
 
 // TODO: Application command perms
@@ -43,6 +45,7 @@ func (s *SlashCommand) build() *discordgo.ApplicationCommandOption {
 			Name:         opt.Name,
 			Description:  opt.Description,
 			Type:         opt.Kind.build(),
+			Required:     opt.Required,
 			Autocomplete: opt.Autocomplete != nil, // TODO: Autocomplete handler
 		}
 		if opt.Choices != nil {
@@ -118,11 +121,21 @@ func (i *interactionCtx) Acknowledge() {
 	i.followup = true
 }
 
-func (i *interactionCtx) Respond(r Response) {
+func (i *interactionCtx) Respond(r *Response) {
+	var embs []*discordgo.MessageEmbed
+	if r.embed != nil {
+		embs = []*discordgo.MessageEmbed{r.embed}
+	}
+
 	if i.followup {
-		i.s.InteractionRespond(i.i, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+		_, err := i.s.FollowupMessageCreate(i.i, true, &discordgo.WebhookParams{
+			Content:    r.content,
+			Embeds:     embs,
+			Components: r.components,
 		})
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	typ := discordgo.InteractionResponseChannelMessageWithSource
@@ -134,7 +147,7 @@ func (i *interactionCtx) Respond(r Response) {
 		Data: &discordgo.InteractionResponseData{
 			Content:    r.content,
 			Components: r.components,
-			Embeds:     []*discordgo.MessageEmbed{r.embed},
+			Embeds:     embs,
 			Flags:      1 << 6, // All non-acknowledged responses are ephemeral
 		},
 	})
@@ -157,18 +170,21 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 		if !exists {
 			return
 		}
+		cmdOpts := i.Options
 		if v.isGroup() {
 			var opt *discordgo.ApplicationCommandInteractionDataOption
 			for v.isGroup() {
 				if opt == nil {
 					opt = i.Options[0]
 				} else {
+					cmdOpts = opt.Options
 					opt = opt.Options[0]
 				}
 
 				for _, val := range v.(*SlashCommandGroup).Children {
 					if val.name() == opt.Name {
 						v = val
+						cmdOpts = opt.Options
 						break
 					}
 				}
@@ -176,7 +192,7 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 		}
 
 		opts := make(map[string]any, len(i.Options))
-		for _, opt := range i.Options {
+		for _, opt := range cmdOpts {
 			opts[opt.Name] = optToAny(opt, i)
 		}
 
