@@ -1,7 +1,7 @@
 package sevcord
 
 import (
-	"fmt"
+	"sync"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -9,8 +9,10 @@ import (
 type Client struct {
 	dg *discordgo.Session
 
-	commands          map[string]SlashCommandObject
+	commands map[string]SlashCommandObject
+
 	componentHandlers map[string]map[string]interface{} // map[interactionid]map[componentid]handler
+	lock              *sync.RWMutex
 }
 
 func NewClient(token string) (*Client, error) {
@@ -26,6 +28,7 @@ func NewClient(token string) (*Client, error) {
 		dg:                dg,
 		commands:          make(map[string]SlashCommandObject),
 		componentHandlers: make(map[string]map[string]interface{}),
+		lock:              &sync.RWMutex{},
 	}, nil
 }
 
@@ -65,9 +68,7 @@ func (c *Client) Close() error {
 type Response struct {
 	content    string
 	embed      *discordgo.MessageEmbed
-	components []discordgo.MessageComponent
-
-	componentHandlers map[string]interface{} // The object that goes into the componentHandlers map
+	components [][]Component
 }
 
 func MessageResponse(message string) *Response {
@@ -145,19 +146,7 @@ func EmbedResponse(e *EmbedBuilder) *Response {
 }
 
 func (r *Response) ComponentRow(components ...Component) *Response {
-	if r.componentHandlers == nil {
-		r.componentHandlers = make(map[string]interface{})
-	}
-	comps := make([]discordgo.MessageComponent, 0, len(components))
-	for i, c := range components {
-		id := fmt.Sprintf("%d_%d", i, len(r.components))
-		v := c.build(id)
-		comps = append(comps, v)
-		r.componentHandlers[id] = c.handler()
-	}
-	r.components = append(r.components, discordgo.ActionsRow{
-		Components: comps,
-	})
+	r.components = append(r.components, components)
 	return r
 }
 

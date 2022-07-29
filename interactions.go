@@ -1,6 +1,9 @@
 package sevcord
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -132,17 +135,36 @@ func (i *interactionCtx) Respond(r *Response) {
 		embs = []*discordgo.MessageEmbed{r.embed}
 	}
 
+	var comps []discordgo.MessageComponent
+	if r.components != nil {
+		handlers := make(map[string]interface{})
+		comps = make([]discordgo.MessageComponent, 0, len(r.components))
+		for ind, r := range r.components {
+			row := make([]discordgo.MessageComponent, 0, len(r))
+			for j, c := range r {
+				id := fmt.Sprintf("%d_%d", j, ind)
+				handlers[id] = c.handler()
+				v := c.build(i.i.ID + ":" + id)
+				row = append(row, v)
+			}
+			comps = append(comps, discordgo.ActionsRow{
+				Components: row,
+			})
+		}
+
+		i.c.lock.Lock()
+		i.c.componentHandlers[i.i.ID] = handlers
+		i.c.lock.Unlock()
+	}
+
 	if i.followup {
-		msg, err := i.s.FollowupMessageCreate(i.i, true, &discordgo.WebhookParams{
+		_, err := i.s.FollowupMessageCreate(i.i, true, &discordgo.WebhookParams{
 			Content:    r.content,
 			Embeds:     embs,
-			Components: r.components,
+			Components: comps,
 		})
 		if err != nil {
 			return
-		}
-		if r.componentHandlers != nil {
-			i.c.componentHandlers[msg.ID] = r.componentHandlers
 		}
 		return
 	}
@@ -155,16 +177,13 @@ func (i *interactionCtx) Respond(r *Response) {
 		Type: typ,
 		Data: &discordgo.InteractionResponseData{
 			Content:    r.content,
-			Components: r.components,
+			Components: comps,
 			Embeds:     embs,
 			Flags:      1 << 6, // All non-acknowledged responses are ephemeral
 		},
 	})
 	if err != nil {
 		return
-	}
-	if r.componentHandlers != nil {
-		i.c.componentHandlers[i.i.ID] = r.componentHandlers // TODO: Make this the ID of the ephemeral message instead of interaction id so ephemeral components work
 	}
 }
 
@@ -250,11 +269,14 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 	case discordgo.InteractionMessageComponent:
 		dat := i.MessageComponentData()
 		ctx.component = true
-		handlers, exists := c.componentHandlers[i.Message.ID]
+		parts := strings.Split(dat.CustomID, ":")
+		c.lock.RLock()
+		handlers, exists := c.componentHandlers[parts[0]]
+		c.lock.RUnlock()
 		if !exists {
 			return
 		}
-		h, exists := handlers[dat.CustomID]
+		h, exists := handlers[parts[1]]
 		if !exists {
 			return
 		}
