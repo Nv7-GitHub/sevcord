@@ -4,6 +4,7 @@ package sevcord
 
 import (
 	"image"
+	"io"
 	"sync"
 	"time"
 
@@ -71,10 +72,17 @@ func (c *Client) Close() error {
 	return c.dg.Close()
 }
 
+type File struct {
+	Name        string
+	ContentType string
+	Reader      io.Reader
+}
+
 type Response struct {
 	content    string
 	embed      *discordgo.MessageEmbed
 	components [][]Component
+	files      []*discordgo.File
 }
 
 func MessageResponse(message string) *Response {
@@ -153,6 +161,18 @@ func EmbedResponse(e *EmbedBuilder) *Response {
 
 func (r *Response) ComponentRow(components ...Component) *Response {
 	r.components = append(r.components, components)
+	return r
+}
+
+func (r *Response) File(f File) *Response {
+	if r.files == nil {
+		r.files = make([]*discordgo.File, 0)
+	}
+	r.files = append(r.files, &discordgo.File{
+		Name:        f.Name,
+		Reader:      f.Reader,
+		ContentType: f.ContentType,
+	})
 	return r
 }
 

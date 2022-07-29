@@ -179,6 +179,7 @@ func (i *interactionCtx) send(r *Response, edit bool) {
 				Content:    r.content,
 				Embeds:     embs,
 				Components: comps,
+				Files:      r.files,
 			})
 			if err != nil {
 				Logger.Println(err)
@@ -191,6 +192,7 @@ func (i *interactionCtx) send(r *Response, edit bool) {
 			Content:    r.content,
 			Embeds:     embs,
 			Components: comps,
+			Files:      r.files,
 		})
 		if err != nil {
 			Logger.Println(err)
@@ -210,6 +212,7 @@ func (i *interactionCtx) send(r *Response, edit bool) {
 			Content:    r.content,
 			Components: comps,
 			Embeds:     embs,
+			Files:      r.files,
 			Flags:      1 << 6, // All non-acknowledged responses are ephemeral
 		},
 	})
