@@ -81,7 +81,7 @@ const (
 	OptionKindString     OptionKind = iota // string
 	OptionKindInt                          // int
 	OptionKindBool                         // bool
-	OptionKindUser                         // user id (string)
+	OptionKindUser                         // *User
 	OptionKindChannel                      // channel id (string)
 	OptionKindRole                         // role id (string)
 	OptionKindFloat                        // float64
@@ -214,6 +214,21 @@ func (i *interactionCtx) Guild() string {
 	return i.i.GuildID
 }
 
+func (i *interactionCtx) session() *discordgo.Session {
+	return i.s
+}
+
+func (i *interactionCtx) User() *User {
+	if i.i.Member == nil {
+		return userFromUser(i.i.User)
+	}
+	return userFromMember(i.i.Member)
+}
+
+func (i *interactionCtx) Channel() string {
+	return i.i.ChannelID
+}
+
 func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	ctx := &interactionCtx{
 		i: i.Interaction,
@@ -255,7 +270,7 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 				if opt.Focused {
 					for _, vopt := range v.(*SlashCommand).Options {
 						if opt.Name == vopt.Name {
-							res := vopt.Autocomplete(optToAny(opt, dat))
+							res := vopt.Autocomplete(optToAny(opt, dat, s))
 							choices := make([]*discordgo.ApplicationCommandOptionChoice, len(res))
 							for i, choice := range res {
 								choices[i] = &discordgo.ApplicationCommandOptionChoice{
@@ -279,7 +294,7 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 
 		opts := make(map[string]any, len(dat.Options))
 		for _, opt := range cmdOpts {
-			opts[opt.Name] = optToAny(opt, dat)
+			opts[opt.Name] = optToAny(opt, dat, s)
 		}
 
 		pars := make([]any, len(v.(*SlashCommand).Options))
@@ -313,7 +328,7 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 	}
 }
 
-func optToAny(opt *discordgo.ApplicationCommandInteractionDataOption, i discordgo.ApplicationCommandInteractionData) any {
+func optToAny(opt *discordgo.ApplicationCommandInteractionDataOption, i discordgo.ApplicationCommandInteractionData, s *discordgo.Session) any {
 	switch opt.Type {
 	case discordgo.ApplicationCommandOptionString:
 		return opt.StringValue()
@@ -325,7 +340,7 @@ func optToAny(opt *discordgo.ApplicationCommandInteractionDataOption, i discordg
 		return opt.BoolValue()
 
 	case discordgo.ApplicationCommandOptionUser:
-		return opt.Value.(string)
+		return userFromUser(opt.UserValue(s))
 
 	case discordgo.ApplicationCommandOptionChannel:
 		return opt.Value.(string)

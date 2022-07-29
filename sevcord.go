@@ -1,7 +1,11 @@
 package sevcord
 
+// TODO: Locale support (note that it needs to be in User info too)
+
 import (
+	"image"
 	"sync"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -150,9 +154,169 @@ func (r *Response) ComponentRow(components ...Component) *Response {
 	return r
 }
 
+type UserFlag int
+
+const (
+	UserFlagDiscordEmployee           UserFlag = 1 << 0
+	UserFlagDiscordPartner            UserFlag = 1 << 1
+	UserFlagHypeSquadEvents           UserFlag = 1 << 2
+	UserFlagBugHunterLevel1           UserFlag = 1 << 3
+	UserFlagHouseBravery              UserFlag = 1 << 6
+	UserFlagHouseBrilliance           UserFlag = 1 << 7
+	UserFlagHouseBalance              UserFlag = 1 << 8
+	UserFlagEarlySupporter            UserFlag = 1 << 9
+	UserFlagTeamUser                  UserFlag = 1 << 10
+	UserFlagSystem                    UserFlag = 1 << 12
+	UserFlagBugHunterLevel2           UserFlag = 1 << 14
+	UserFlagVerifiedBot               UserFlag = 1 << 16
+	UserFlagVerifiedBotDeveloper      UserFlag = 1 << 17
+	UserFlagDiscordCertifiedModerator UserFlag = 1 << 18
+)
+
+type User struct {
+	ID            string
+	Username      string
+	Discriminator string // 4 numbers after name
+	BannerColor   int
+	Bot           bool
+	System        bool
+	AvatarURL     string
+	BannerURL     string
+
+	// Guild user options
+	Guild          bool // Whether the following fields are filled out or not
+	JoinedAt       time.Time
+	Nickname       string
+	Deaf           bool   // Deafened on guild level
+	Mute           bool   // Muted on guild level
+	GuildAvatarURL string // Blank if no custom avatar
+
+	userflags UserFlag
+}
+
+// Avatar gets the user's avatar without making a network request
+func (u *User) Avatar(ctx Ctx) (image.Image, error) {
+	return ctx.session().UserAvatar(u.ID)
+}
+func (u *User) HasFlag(flag UserFlag) bool {
+	return u.userflags&flag != 0
+}
+
+func userFromUser(d *discordgo.User) *User {
+	return &User{
+		ID:            d.ID,
+		Username:      d.Username,
+		Discriminator: d.Discriminator,
+		BannerColor:   d.AccentColor,
+		Bot:           d.Bot,
+		System:        d.System,
+		AvatarURL:     d.AvatarURL(""),
+		BannerURL:     d.BannerURL(""),
+		userflags:     UserFlag(d.Flags),
+	}
+}
+
+func userFromMember(d *discordgo.Member) *User {
+	u := userFromUser(d.User)
+	u.Guild = true
+	u.JoinedAt = d.JoinedAt
+	u.Nickname = d.Nick
+	u.Deaf = d.Deaf
+	u.Mute = d.Mute
+	if d.Avatar != "" {
+		u.GuildAvatarURL = d.AvatarURL("")
+	}
+	return u
+}
+
+type ChannelType int
+
+const (
+	ChannelTypeGuildText          ChannelType = 0
+	ChannelTypeDM                 ChannelType = 1
+	ChannelTypeGuildVoice         ChannelType = 2
+	ChannelTypeGroupDM            ChannelType = 3
+	ChannelTypeGuildCategory      ChannelType = 4
+	ChannelTypeGuildNews          ChannelType = 5
+	ChannelTypeGuildStore         ChannelType = 6
+	ChannelTypeGuildNewsThread    ChannelType = 10
+	ChannelTypeGuildPublicThread  ChannelType = 11
+	ChannelTypeGuildPrivateThread ChannelType = 12
+	ChannelTypeGuildStageVoice    ChannelType = 13
+)
+
+type Channel struct {
+	Guild  bool // Whether its a guild channel
+	ID     string
+	Name   string
+	Topic  string
+	Type   ChannelType
+	NSFW   bool
+	Parent string // ID of category, ID of channel a thread is in if its a thread
+
+	// Group DMs
+	Icon       string
+	Recipients []*User
+
+	// Voice channels
+	Bitrate   int
+	UserLimit int
+}
+
+func channelFromChannel(d *discordgo.Channel) *Channel {
+	v := &Channel{
+		Guild:     d.GuildID != "",
+		ID:        d.ID,
+		Name:      d.Name,
+		Topic:     d.Topic,
+		Type:      ChannelType(d.Type),
+		NSFW:      d.NSFW,
+		Parent:    d.ParentID,
+		Icon:      d.Icon,
+		Bitrate:   d.Bitrate,
+		UserLimit: d.UserLimit,
+	}
+	if d.Recipients != nil {
+		v.Recipients = make([]*User, len(d.Recipients))
+		for i, r := range d.Recipients {
+			v.Recipients[i] = userFromUser(r)
+		}
+	}
+	return v
+}
+
+func GetChannel(c Ctx, id string) (*Channel, error) {
+	d, err := c.session().Channel(id)
+	if err != nil {
+		return nil, err
+	}
+	return channelFromChannel(d), nil
+}
+
+func GetUser(c Ctx, id string) (*User, error) {
+	d, err := c.session().User(id)
+	if err != nil {
+		return nil, err
+	}
+	return userFromUser(d), nil
+}
+
+func GetGuildUser(c Ctx, id string, guild string) (*User, error) {
+	d, err := c.session().GuildMember(guild, id)
+	if err != nil {
+		return nil, err
+	}
+	return userFromMember(d), nil
+}
+
 type Ctx interface {
 	Acknowledge()
 	Respond(*Response)
 	Edit(*Response)
+
 	Guild() string
+	Channel() string
+	User() *User
+
+	session() *discordgo.Session
 }
