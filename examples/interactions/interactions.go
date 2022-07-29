@@ -68,7 +68,7 @@ func main() {
 						Description: "Test command option",
 						Kind:        sevcord.OptionKindString,
 						Required:    true,
-						Autocomplete: func(val any) []sevcord.Choice {
+						Autocomplete: func(c sevcord.Ctx, val any) []sevcord.Choice {
 							return []sevcord.Choice{{Name: "Hey", Value: "Hey"}, {Name: "Hello", Value: "Hello"}, {Name: "Bye", Value: "Bye"}} // Up to 25
 						},
 					},

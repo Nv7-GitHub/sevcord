@@ -111,7 +111,7 @@ type Choice struct {
 	Value string
 }
 
-type AutocompleteHandler func(any) []Choice
+type AutocompleteHandler func(Ctx, any) []Choice
 type SlashCommandHandler func(Ctx, []any)
 
 type interactionCtx struct {
@@ -317,7 +317,7 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 				if opt.Focused {
 					for _, vopt := range v.(*SlashCommand).Options {
 						if opt.Name == vopt.Name {
-							res := vopt.Autocomplete(optToAny(opt, dat, s))
+							res := vopt.Autocomplete(ctx, optToAny(opt, dat, s))
 							choices := make([]*discordgo.ApplicationCommandOptionChoice, len(res))
 							for i, choice := range res {
 								choices[i] = &discordgo.ApplicationCommandOptionChoice{
