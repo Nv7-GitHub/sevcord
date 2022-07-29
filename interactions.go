@@ -2,10 +2,14 @@ package sevcord
 
 import (
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
+
+var Logger = log.Default()
 
 // NOTE: Can only have 2 of these and then a command
 type SlashCommandGroup struct {
@@ -124,9 +128,12 @@ func (i *interactionCtx) Acknowledge() {
 		return
 	}
 
-	i.s.InteractionRespond(i.i, &discordgo.InteractionResponse{
+	err := i.s.InteractionRespond(i.i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 	})
+	if err != nil {
+		Logger.Println(err)
+	}
 	i.followup = true
 }
 
@@ -138,7 +145,6 @@ func (i *interactionCtx) Edit(r *Response) {
 	i.send(r, true)
 }
 
-// TODO: Better error handling
 func (i *interactionCtx) send(r *Response, edit bool) {
 	var embs []*discordgo.MessageEmbed
 	if r.embed != nil {
@@ -175,6 +181,7 @@ func (i *interactionCtx) send(r *Response, edit bool) {
 				Components: comps,
 			})
 			if err != nil {
+				Logger.Println(err)
 				return
 			}
 			return
@@ -186,6 +193,7 @@ func (i *interactionCtx) send(r *Response, edit bool) {
 			Components: comps,
 		})
 		if err != nil {
+			Logger.Println(err)
 			return
 		}
 		i.followupid = msg.ID
@@ -206,6 +214,7 @@ func (i *interactionCtx) send(r *Response, edit bool) {
 		},
 	})
 	if err != nil {
+		Logger.Println(err)
 		return
 	}
 }
@@ -227,6 +236,41 @@ func (i *interactionCtx) User() *User {
 
 func (i *interactionCtx) Channel() string {
 	return i.i.ChannelID
+}
+
+func (i *interactionCtx) Modal(m *Modal) {
+	comps := make([]discordgo.MessageComponent, len(m.Inputs))
+	for ind, inp := range m.Inputs {
+		comps[ind] = &discordgo.ActionsRow{
+			Components: []discordgo.MessageComponent{
+				discordgo.TextInput{
+					CustomID:    strconv.Itoa(ind),
+					Label:       inp.Label,
+					Style:       discordgo.TextInputStyle(inp.Style),
+					Placeholder: inp.Placeholder,
+					Required:    inp.Required,
+					MinLength:   inp.MinLength,
+					MaxLength:   inp.MaxLength,
+				},
+			},
+		}
+	}
+
+	i.c.lock.Lock()
+	i.c.modalHandlers[i.i.ID] = m.Handler
+	i.c.lock.Unlock()
+
+	err := i.s.InteractionRespond(i.i, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseModal,
+		Data: &discordgo.InteractionResponseData{
+			Title:      m.Title,
+			Components: comps,
+			CustomID:   i.i.ID,
+		},
+	})
+	if err != nil {
+		Logger.Println(err)
+	}
 }
 
 func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -279,12 +323,15 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 								}
 							}
 
-							s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+							err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 								Type: discordgo.InteractionApplicationCommandAutocompleteResult,
 								Data: &discordgo.InteractionResponseData{
 									Choices: choices,
 								},
 							})
+							if err != nil {
+								Logger.Println(err)
+							}
 							return
 						}
 					}
@@ -325,6 +372,21 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 		case SelectHandler:
 			h(ctx, dat.Values)
 		}
+
+	case discordgo.InteractionModalSubmit:
+		dat := i.ModalSubmitData()
+		ctx.component = true
+		c.lock.RLock()
+		handler, exists := c.modalHandlers[dat.CustomID]
+		c.lock.RUnlock()
+		if !exists {
+			return
+		}
+		vals := make([]string, len(dat.Components))
+		for i, comp := range dat.Components {
+			vals[i] = comp.(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
+		}
+		handler(ctx, vals)
 	}
 }
 
@@ -490,4 +552,28 @@ type SelectOption struct {
 type Component interface {
 	build(customid string) discordgo.MessageComponent
 	handler() any
+}
+
+type ModalHandler func(Ctx, []string)
+
+type Modal struct {
+	Title   string
+	Inputs  []ModalInput
+	Handler ModalHandler
+}
+
+type ModalInputStyle int
+
+const (
+	ModalInputStyleSentence  ModalInputStyle = 1
+	ModalInputStyleParagraph ModalInputStyle = 2
+)
+
+type ModalInput struct {
+	Label       string
+	Placeholder string
+	Style       ModalInputStyle
+	Required    bool
+	MinLength   int
+	MaxLength   int
 }

@@ -16,6 +16,7 @@ type Client struct {
 	commands map[string]SlashCommandObject
 
 	componentHandlers map[string]map[string]interface{} // map[interactionid]map[componentid]handler
+	modalHandlers     map[string]ModalHandler           // map[interactionid]handler
 	lock              *sync.RWMutex
 }
 
@@ -32,6 +33,7 @@ func NewClient(token string) (*Client, error) {
 		dg:                dg,
 		commands:          make(map[string]SlashCommandObject),
 		componentHandlers: make(map[string]map[string]interface{}),
+		modalHandlers:     make(map[string]ModalHandler),
 		lock:              &sync.RWMutex{},
 	}, nil
 }
@@ -313,6 +315,7 @@ type Ctx interface {
 	Acknowledge()
 	Respond(*Response)
 	Edit(*Response)
+	Modal(*Modal)
 
 	Guild() string
 	Channel() string

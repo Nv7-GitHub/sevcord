@@ -91,8 +91,28 @@ func main() {
 						&sevcord.Button{Label: "Success Button", Style: sevcord.ButtonStyleSuccess, Handler: func(ctx sevcord.Ctx) { ctx.Edit(sevcord.MessageResponse("Success button pressed")) }},
 						&sevcord.Button{Label: "Disabled Button", Style: sevcord.ButtonStylePrimary, Disabled: true},
 					).ComponentRow(
-						&sevcord.Button{Label: "Emoji Button", Style: sevcord.ButtonStyleSuccess, Emoji: sevcord.ComponentEmojiDefault('😳'), Handler: func(ctx sevcord.Ctx) { ctx.Edit(sevcord.MessageResponse("Emoji button pressed")) }},
+						&sevcord.Button{Label: "Emoji Button", Style: sevcord.ButtonStylePrimary, Emoji: sevcord.ComponentEmojiDefault('😳'), Handler: func(ctx sevcord.Ctx) { ctx.Edit(sevcord.MessageResponse("Emoji button pressed")) }},
 						&sevcord.Button{Label: "Link Button", Style: sevcord.ButtonStyleLink, URL: "https://github.com/Nv7-Github/sevcord"},
+						&sevcord.Button{Label: "Modal Button", Style: sevcord.ButtonStylePrimary, Handler: func(ctx sevcord.Ctx) {
+							ctx.Modal(&sevcord.Modal{
+								Title: "Modal",
+								Inputs: []sevcord.ModalInput{
+									{
+										Label:       "Short Input",
+										Placeholder: "This is a short input",
+										Style:       sevcord.ModalInputStyleSentence,
+									},
+									{
+										Label:       "Long Input",
+										Placeholder: "This is a long input",
+										Style:       sevcord.ModalInputStyleParagraph,
+									},
+								},
+								Handler: func(ctx sevcord.Ctx, vals []string) {
+									ctx.Edit(sevcord.MessageResponse(fmt.Sprintf("You entered `%v`", vals)))
+								},
+							})
+						}},
 					).ComponentRow(
 						&sevcord.Select{
 							Placeholder: "What is your favorite color?",
