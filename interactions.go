@@ -46,7 +46,7 @@ func (s *SlashCommand) build() *discordgo.ApplicationCommandOption {
 			Description:  opt.Description,
 			Type:         opt.Kind.build(),
 			Required:     opt.Required,
-			Autocomplete: opt.Autocomplete != nil, // TODO: Autocomplete handler
+			Autocomplete: opt.Autocomplete != nil,
 		}
 		if opt.Choices != nil {
 			opts[i].Choices = make([]*discordgo.ApplicationCommandOptionChoice, len(opt.Choices))
@@ -108,13 +108,18 @@ type AutocompleteHandler func(any) []Choice
 type SlashCommandHandler func([]any, Ctx)
 
 type interactionCtx struct {
-	i        *discordgo.Interaction
-	s        *discordgo.Session
-	followup bool
-	button   bool
+	c         *Client
+	i         *discordgo.Interaction
+	s         *discordgo.Session
+	followup  bool // ID of followup
+	component bool
 }
 
 func (i *interactionCtx) Acknowledge() {
+	if i.component {
+		return
+	}
+
 	i.s.InteractionRespond(i.i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 	})
@@ -128,21 +133,25 @@ func (i *interactionCtx) Respond(r *Response) {
 	}
 
 	if i.followup {
-		_, err := i.s.FollowupMessageCreate(i.i, true, &discordgo.WebhookParams{
+		msg, err := i.s.FollowupMessageCreate(i.i, true, &discordgo.WebhookParams{
 			Content:    r.content,
 			Embeds:     embs,
 			Components: r.components,
 		})
 		if err != nil {
-			panic(err)
+			return
 		}
+		if r.componentHandlers != nil {
+			i.c.componentHandlers[msg.ID] = r.componentHandlers
+		}
+		return
 	}
 
 	typ := discordgo.InteractionResponseChannelMessageWithSource
-	if i.button {
+	if i.component {
 		typ = discordgo.InteractionResponseUpdateMessage
 	}
-	i.s.InteractionRespond(i.i, &discordgo.InteractionResponse{
+	err := i.s.InteractionRespond(i.i, &discordgo.InteractionResponse{
 		Type: typ,
 		Data: &discordgo.InteractionResponseData{
 			Content:    r.content,
@@ -151,6 +160,12 @@ func (i *interactionCtx) Respond(r *Response) {
 			Flags:      1 << 6, // All non-acknowledged responses are ephemeral
 		},
 	})
+	if err != nil {
+		return
+	}
+	if r.componentHandlers != nil {
+		i.c.componentHandlers[i.i.ID] = r.componentHandlers // TODO: Make this the ID of the ephemeral message instead of interaction id so ephemeral components work
+	}
 }
 
 func (i *interactionCtx) Guild() string {
@@ -161,6 +176,7 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 	ctx := &interactionCtx{
 		i: i.Interaction,
 		s: s,
+		c: c,
 	}
 
 	switch i.Type {
@@ -230,6 +246,25 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 		}
 
 		v.(*SlashCommand).Handler(pars, ctx)
+
+	case discordgo.InteractionMessageComponent:
+		dat := i.MessageComponentData()
+		ctx.component = true
+		handlers, exists := c.componentHandlers[i.Message.ID]
+		if !exists {
+			return
+		}
+		h, exists := handlers[dat.CustomID]
+		if !exists {
+			return
+		}
+		switch h := h.(type) {
+		case ButtonHandler:
+			h(ctx)
+
+		case SelectHandler:
+			h(ctx, dat.Values)
+		}
 	}
 }
 
@@ -268,4 +303,131 @@ func optToAny(opt *discordgo.ApplicationCommandInteractionDataOption, i discordg
 	default:
 		return nil
 	}
+}
+
+type ButtonHandler func(ctx Ctx)
+
+type Button struct {
+	Label   string
+	Style   ButtonStyle
+	Handler ButtonHandler
+
+	// Optional
+	Emoji    *ComponentEmoji
+	URL      string // Only link button can have this
+	Disabled bool
+}
+
+type ComponentEmoji struct {
+	name     string // Make this the raw emoji for a builtin emoji, otherwise the custom emoji name and use ID
+	id       string
+	animated bool
+}
+
+func ComponentEmojiDefault(emoji rune) *ComponentEmoji {
+	return &ComponentEmoji{
+		name: string(emoji),
+	}
+}
+
+func ComponentEmojiCustom(name, id string, animated bool) *ComponentEmoji {
+	return &ComponentEmoji{
+		name:     name,
+		id:       id,
+		animated: animated,
+	}
+}
+
+type ButtonStyle int
+
+const (
+	ButtonStylePrimary   ButtonStyle = 1
+	ButtonStyleSecondary ButtonStyle = 2
+	ButtonStyleSuccess   ButtonStyle = 3
+	ButtonStyleDanger    ButtonStyle = 4
+	ButtonStyleLink      ButtonStyle = 5
+)
+
+func (b *Button) build(customid string) discordgo.MessageComponent {
+	v := discordgo.Button{
+		Label:    b.Label,
+		Style:    discordgo.ButtonStyle(b.Style),
+		Disabled: b.Disabled,
+		URL:      b.URL,
+		CustomID: customid,
+	}
+	if b.Emoji != nil {
+		v.Emoji = discordgo.ComponentEmoji{
+			Name:     b.Emoji.name,
+			ID:       b.Emoji.id,
+			Animated: b.Emoji.animated,
+		}
+	}
+	if b.Style == ButtonStyleLink {
+		v.CustomID = ""
+	}
+	return v
+}
+
+func (b *Button) handler() any {
+	return b.Handler
+}
+
+type SelectHandler func(ctx Ctx, opts []string) // opts is the IDs of the options that are selected
+
+type Select struct {
+	Placeholder string
+	Options     []SelectOption
+	Handler     SelectHandler
+
+	// Optional
+	MinValues int
+	MaxValues int
+	Disabled  bool
+}
+
+func (s *Select) build(customid string) discordgo.MessageComponent {
+	v := discordgo.SelectMenu{
+		Placeholder: s.Placeholder,
+		Options:     make([]discordgo.SelectMenuOption, len(s.Options)),
+		MinValues:   &s.MinValues,
+		MaxValues:   s.MaxValues,
+		Disabled:    s.Disabled,
+		CustomID:    customid,
+	}
+	for i, opt := range s.Options {
+		v.Options[i] = discordgo.SelectMenuOption{
+			Label:       opt.Label,
+			Value:       opt.ID,
+			Description: opt.Description,
+			Default:     opt.Default,
+		}
+		if opt.Emoji != nil {
+			v.Options[i].Emoji = discordgo.ComponentEmoji{
+				Name:     opt.Emoji.name,
+				ID:       opt.Emoji.id,
+				Animated: opt.Emoji.animated,
+			}
+		}
+	}
+	return v
+}
+
+func (s *Select) handler() any {
+	return s.Handler
+}
+
+type SelectOption struct {
+	Label       string
+	Description string
+	ID          string // Must be unique
+
+	// Optional
+	Emoji   *ComponentEmoji
+	Default bool // Whether it is automatically ticked
+}
+
+type Component interface {
+	build(customid string) discordgo.MessageComponent
+	handler() any
 }
