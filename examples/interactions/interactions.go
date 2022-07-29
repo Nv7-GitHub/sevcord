@@ -37,7 +37,7 @@ func main() {
 								Required:    true,
 							},
 						},
-						Handler: func(args []any, ctx sevcord.Ctx) {
+						Handler: func(ctx sevcord.Ctx, args []any) {
 							ctx.Acknowledge()
 							ctx.Edit(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
 						},
@@ -53,7 +53,7 @@ func main() {
 								Required:    true,
 							},
 						},
-						Handler: func(args []any, ctx sevcord.Ctx) {
+						Handler: func(ctx sevcord.Ctx, args []any) {
 							ctx.Edit(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
 						},
 					},
@@ -73,7 +73,7 @@ func main() {
 						},
 					},
 				},
-				Handler: func(args []any, ctx sevcord.Ctx) {
+				Handler: func(ctx sevcord.Ctx, args []any) {
 					ctx.Edit(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
 				},
 			},
@@ -81,7 +81,7 @@ func main() {
 				Name:        "components",
 				Description: "Test components",
 				Options:     []sevcord.Option{},
-				Handler: func(args []any, ctx sevcord.Ctx) {
+				Handler: func(ctx sevcord.Ctx, args []any) {
 					ctx.Acknowledge()
 
 					r := sevcord.MessageResponse("Components").ComponentRow(

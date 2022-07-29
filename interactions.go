@@ -112,7 +112,7 @@ type Choice struct {
 }
 
 type AutocompleteHandler func(any) []Choice
-type SlashCommandHandler func([]any, Ctx)
+type SlashCommandHandler func(Ctx, []any)
 
 type interactionCtx struct {
 	c          *Client
@@ -352,7 +352,7 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 			pars[i] = opts[opt.Name]
 		}
 
-		v.(*SlashCommand).Handler(pars, ctx)
+		v.(*SlashCommand).Handler(ctx, pars)
 
 	case discordgo.InteractionMessageComponent:
 		dat := i.MessageComponentData()
