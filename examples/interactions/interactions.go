@@ -39,7 +39,7 @@ func main() {
 						},
 						Handler: func(args []any, ctx sevcord.Ctx) {
 							ctx.Acknowledge()
-							ctx.Respond(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
+							ctx.Edit(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
 						},
 					},
 					&sevcord.SlashCommand{
@@ -54,7 +54,7 @@ func main() {
 							},
 						},
 						Handler: func(args []any, ctx sevcord.Ctx) {
-							ctx.Respond(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
+							ctx.Edit(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
 						},
 					},
 				},
@@ -74,7 +74,7 @@ func main() {
 					},
 				},
 				Handler: func(args []any, ctx sevcord.Ctx) {
-					ctx.Respond(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
+					ctx.Edit(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
 				},
 			},
 			&sevcord.SlashCommand{
@@ -85,13 +85,13 @@ func main() {
 					ctx.Acknowledge()
 
 					r := sevcord.MessageResponse("Components").ComponentRow(
-						&sevcord.Button{Label: "Button", Style: sevcord.ButtonStylePrimary, Handler: func(ctx sevcord.Ctx) { ctx.Respond(sevcord.MessageResponse("Button pressed")) }},
-						&sevcord.Button{Label: "Secondary Button", Style: sevcord.ButtonStyleSecondary, Handler: func(ctx sevcord.Ctx) { ctx.Respond(sevcord.MessageResponse("Secondary button pressed")) }},
-						&sevcord.Button{Label: "Danger Button", Style: sevcord.ButtonStyleDanger, Handler: func(ctx sevcord.Ctx) { ctx.Respond(sevcord.MessageResponse("Dange button pressed")) }},
-						&sevcord.Button{Label: "Success Button", Style: sevcord.ButtonStyleSuccess, Handler: func(ctx sevcord.Ctx) { ctx.Respond(sevcord.MessageResponse("Success button pressed")) }},
+						&sevcord.Button{Label: "Button", Style: sevcord.ButtonStylePrimary, Handler: func(ctx sevcord.Ctx) { ctx.Edit(sevcord.MessageResponse("Button pressed")) }},
+						&sevcord.Button{Label: "Secondary Button", Style: sevcord.ButtonStyleSecondary, Handler: func(ctx sevcord.Ctx) { ctx.Edit(sevcord.MessageResponse("Secondary button pressed")) }},
+						&sevcord.Button{Label: "Danger Button", Style: sevcord.ButtonStyleDanger, Handler: func(ctx sevcord.Ctx) { ctx.Edit(sevcord.MessageResponse("Dange button pressed")) }},
+						&sevcord.Button{Label: "Success Button", Style: sevcord.ButtonStyleSuccess, Handler: func(ctx sevcord.Ctx) { ctx.Edit(sevcord.MessageResponse("Success button pressed")) }},
 						&sevcord.Button{Label: "Disabled Button", Style: sevcord.ButtonStylePrimary, Disabled: true},
 					).ComponentRow(
-						&sevcord.Button{Label: "Emoji Button", Style: sevcord.ButtonStyleSuccess, Emoji: sevcord.ComponentEmojiDefault('😳'), Handler: func(ctx sevcord.Ctx) { ctx.Respond(sevcord.MessageResponse("Emoji button pressed")) }},
+						&sevcord.Button{Label: "Emoji Button", Style: sevcord.ButtonStyleSuccess, Emoji: sevcord.ComponentEmojiDefault('😳'), Handler: func(ctx sevcord.Ctx) { ctx.Edit(sevcord.MessageResponse("Emoji button pressed")) }},
 						&sevcord.Button{Label: "Link Button", Style: sevcord.ButtonStyleLink, URL: "https://github.com/Nv7-Github/sevcord"},
 					).ComponentRow(
 						&sevcord.Select{
@@ -105,7 +105,7 @@ func main() {
 								{Label: "Purple", Description: "Purple", ID: "purple", Emoji: sevcord.ComponentEmojiDefault('🟣')},
 							},
 							Handler: func(ctx sevcord.Ctx, vals []string) {
-								ctx.Respond(sevcord.MessageResponse(fmt.Sprintf("You selected `%v`", vals)))
+								ctx.Edit(sevcord.MessageResponse(fmt.Sprintf("You selected `%v`", vals))) // NOTE: Use ctx.Respond to make the values selected not change
 							},
 							MaxValues: 6,
 						},

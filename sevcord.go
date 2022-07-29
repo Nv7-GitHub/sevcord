@@ -153,5 +153,6 @@ func (r *Response) ComponentRow(components ...Component) *Response {
 type Ctx interface {
 	Acknowledge()
 	Respond(*Response)
+	Edit(*Response)
 	Guild() string
 }

@@ -111,11 +111,12 @@ type AutocompleteHandler func(any) []Choice
 type SlashCommandHandler func([]any, Ctx)
 
 type interactionCtx struct {
-	c         *Client
-	i         *discordgo.Interaction
-	s         *discordgo.Session
-	followup  bool // ID of followup
-	component bool
+	c          *Client
+	i          *discordgo.Interaction
+	s          *discordgo.Session
+	followup   bool // ID of FollowupMessageCreate
+	followupid string
+	component  bool
 }
 
 func (i *interactionCtx) Acknowledge() {
@@ -130,6 +131,15 @@ func (i *interactionCtx) Acknowledge() {
 }
 
 func (i *interactionCtx) Respond(r *Response) {
+	i.send(r, false)
+}
+
+func (i *interactionCtx) Edit(r *Response) {
+	i.send(r, true)
+}
+
+// TODO: Better error handling
+func (i *interactionCtx) send(r *Response, edit bool) {
 	var embs []*discordgo.MessageEmbed
 	if r.embed != nil {
 		embs = []*discordgo.MessageEmbed{r.embed}
@@ -158,7 +168,19 @@ func (i *interactionCtx) Respond(r *Response) {
 	}
 
 	if i.followup {
-		_, err := i.s.FollowupMessageCreate(i.i, true, &discordgo.WebhookParams{
+		if edit && !i.component {
+			_, err := i.s.FollowupMessageEdit(i.i, i.followupid, &discordgo.WebhookEdit{
+				Content:    r.content,
+				Embeds:     embs,
+				Components: comps,
+			})
+			if err != nil {
+				return
+			}
+			return
+		}
+
+		msg, err := i.s.FollowupMessageCreate(i.i, true, &discordgo.WebhookParams{
 			Content:    r.content,
 			Embeds:     embs,
 			Components: comps,
@@ -166,11 +188,12 @@ func (i *interactionCtx) Respond(r *Response) {
 		if err != nil {
 			return
 		}
+		i.followupid = msg.ID
 		return
 	}
 
 	typ := discordgo.InteractionResponseChannelMessageWithSource
-	if i.component {
+	if i.component && edit {
 		typ = discordgo.InteractionResponseUpdateMessage
 	}
 	err := i.s.InteractionRespond(i.i, &discordgo.InteractionResponse{
