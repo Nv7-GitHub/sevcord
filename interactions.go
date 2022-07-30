@@ -124,10 +124,6 @@ type interactionCtx struct {
 }
 
 func (i *interactionCtx) Acknowledge() {
-	if i.component {
-		return
-	}
-
 	err := i.s.InteractionRespond(i.i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 	})
@@ -135,6 +131,7 @@ func (i *interactionCtx) Acknowledge() {
 		Logger.Println(err)
 	}
 	i.followup = true
+	i.component = false
 }
 
 func (i *interactionCtx) Respond(r *Response) {
@@ -210,7 +207,7 @@ func (i *interactionCtx) send(r *Response, edit bool) {
 	}
 
 	typ := discordgo.InteractionResponseChannelMessageWithSource
-	if i.component && edit {
+	if edit {
 		typ = discordgo.InteractionResponseUpdateMessage
 		i.component = false
 	}
