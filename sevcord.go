@@ -11,13 +11,23 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+type componentHandler struct {
+	handlers map[string]any // map[componentid]handler
+	followup *string
+}
+
+type modalHandler struct {
+	handler  ModalHandler
+	followup *string
+}
+
 type Client struct {
 	dg *discordgo.Session
 
 	commands map[string]SlashCommandObject
 
-	componentHandlers map[string]map[string]interface{} // map[interactionid]map[componentid]handler
-	modalHandlers     map[string]ModalHandler           // map[interactionid]handler
+	componentHandlers map[string]componentHandler // map[interactionid]handler
+	modalHandlers     map[string]modalHandler     // map[interactionid]handler
 	lock              *sync.RWMutex
 }
 
@@ -33,8 +43,8 @@ func NewClient(token string) (*Client, error) {
 	return &Client{
 		dg:                dg,
 		commands:          make(map[string]SlashCommandObject),
-		componentHandlers: make(map[string]map[string]interface{}),
-		modalHandlers:     make(map[string]ModalHandler),
+		componentHandlers: make(map[string]componentHandler),
+		modalHandlers:     make(map[string]modalHandler),
 		lock:              &sync.RWMutex{},
 	}, nil
 }

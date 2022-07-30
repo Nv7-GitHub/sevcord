@@ -168,12 +168,19 @@ func (i *interactionCtx) send(r *Response, edit bool) {
 			})
 		}
 
+		v := componentHandler{
+			handlers: handlers,
+		}
+		if i.followup {
+			v.followup = &i.followupid
+		}
+
 		i.c.lock.Lock()
-		i.c.componentHandlers[i.i.ID] = handlers
+		i.c.componentHandlers[i.i.ID] = v
 		i.c.lock.Unlock()
 	}
 
-	if i.followup {
+	if i.followup && !(edit && i.component) {
 		if edit && !i.component {
 			_, err := i.s.FollowupMessageEdit(i.i, i.followupid, &discordgo.WebhookEdit{
 				Content:    r.content,
@@ -205,6 +212,7 @@ func (i *interactionCtx) send(r *Response, edit bool) {
 	typ := discordgo.InteractionResponseChannelMessageWithSource
 	if i.component && edit {
 		typ = discordgo.InteractionResponseUpdateMessage
+		i.component = false
 	}
 	err := i.s.InteractionRespond(i.i, &discordgo.InteractionResponse{
 		Type: typ,
@@ -259,8 +267,13 @@ func (i *interactionCtx) Modal(m *Modal) {
 		}
 	}
 
+	v := modalHandler{handler: m.Handler}
+	if i.followup {
+		v.followup = &i.followupid
+	}
+
 	i.c.lock.Lock()
-	i.c.modalHandlers[i.i.ID] = m.Handler
+	i.c.modalHandlers[i.i.ID] = v
 	i.c.lock.Unlock()
 
 	err := i.s.InteractionRespond(i.i, &discordgo.InteractionResponse{
@@ -364,9 +377,13 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 		if !exists {
 			return
 		}
-		h, exists := handlers[parts[1]]
+		h, exists := handlers.handlers[parts[1]]
 		if !exists {
 			return
+		}
+		if handlers.followup != nil {
+			ctx.followup = true
+			ctx.followupid = *handlers.followup
 		}
 		switch h := h.(type) {
 		case ButtonHandler:
@@ -385,11 +402,15 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 		if !exists {
 			return
 		}
+		if handler.followup != nil {
+			ctx.followup = true
+			ctx.followupid = *handler.followup
+		}
 		vals := make([]string, len(dat.Components))
 		for i, comp := range dat.Components {
 			vals[i] = comp.(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
 		}
-		handler(ctx, vals)
+		handler.handler(ctx, vals)
 	}
 }
 

@@ -87,7 +87,7 @@ func main() {
 					r := sevcord.MessageResponse("Components").ComponentRow(
 						&sevcord.Button{Label: "Button", Style: sevcord.ButtonStylePrimary, Handler: func(ctx sevcord.Ctx) { ctx.Edit(sevcord.MessageResponse("Button pressed")) }},
 						&sevcord.Button{Label: "Secondary Button", Style: sevcord.ButtonStyleSecondary, Handler: func(ctx sevcord.Ctx) { ctx.Edit(sevcord.MessageResponse("Secondary button pressed")) }},
-						&sevcord.Button{Label: "Danger Button", Style: sevcord.ButtonStyleDanger, Handler: func(ctx sevcord.Ctx) { ctx.Edit(sevcord.MessageResponse("Dange button pressed")) }},
+						&sevcord.Button{Label: "Danger Button", Style: sevcord.ButtonStyleDanger, Handler: func(ctx sevcord.Ctx) { ctx.Edit(sevcord.MessageResponse("Danger button pressed")) }},
 						&sevcord.Button{Label: "Success Button", Style: sevcord.ButtonStyleSuccess, Handler: func(ctx sevcord.Ctx) { ctx.Edit(sevcord.MessageResponse("Success button pressed")) }},
 						&sevcord.Button{Label: "Disabled Button", Style: sevcord.ButtonStylePrimary, Disabled: true},
 					).ComponentRow(
