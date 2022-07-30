@@ -39,7 +39,7 @@ func main() {
 						},
 						Handler: func(ctx sevcord.Ctx, args []any) {
 							ctx.Acknowledge()
-							ctx.Edit(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
+							ctx.Respond(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
 						},
 					},
 					&sevcord.SlashCommand{
@@ -54,7 +54,7 @@ func main() {
 							},
 						},
 						Handler: func(ctx sevcord.Ctx, args []any) {
-							ctx.Edit(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
+							ctx.Respond(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
 						},
 					},
 				},
@@ -74,7 +74,7 @@ func main() {
 					},
 				},
 				Handler: func(ctx sevcord.Ctx, args []any) {
-					ctx.Edit(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
+					ctx.Respond(sevcord.MessageResponse("Hello! You said " + args[0].(string)))
 				},
 			},
 			&sevcord.SlashCommand{
