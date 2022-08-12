@@ -7,6 +7,7 @@ type SlashCommandGroup struct {
 	Name        string
 	Description string
 	Children    []SlashCommandObject
+	Permissions *Permissions // Leave nil for everyone to use, only works for top-level commands
 }
 
 // TODO: Application command perms
@@ -14,6 +15,7 @@ type SlashCommand struct {
 	Name        string
 	Description string
 	Options     []Option
+	Permissions *Permissions // Leave nil for everyone to use, only works for top-level commands
 	Handler     SlashCommandHandler
 }
 
@@ -35,7 +37,14 @@ func (s *SlashCommandGroup) build() *discordgo.ApplicationCommandOption {
 	}
 }
 func (s *SlashCommandGroup) isGroup() bool { return true }
-func (s *SlashCommand) name() string       { return s.Name }
+func (s *SlashCommandGroup) permissions() *int64 {
+	if s.Permissions != nil {
+		v := int64(*s.Permissions)
+		return &v
+	}
+	return nil
+}
+func (s *SlashCommand) name() string { return s.Name }
 func (s *SlashCommand) build() *discordgo.ApplicationCommandOption {
 	opts := make([]*discordgo.ApplicationCommandOption, len(s.Options))
 	for i, opt := range s.Options {
@@ -63,6 +72,13 @@ func (s *SlashCommand) build() *discordgo.ApplicationCommandOption {
 	}
 }
 func (s *SlashCommand) isGroup() bool { return false }
+func (s *SlashCommand) permissions() *int64 {
+	if s.Permissions != nil {
+		v := int64(*s.Permissions)
+		return &v
+	}
+	return nil
+}
 
 type SlashCommandAttachment struct {
 	Filename    string

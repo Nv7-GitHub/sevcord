@@ -55,6 +55,7 @@ type SlashCommandObject interface {
 	name() string
 	build() *discordgo.ApplicationCommandOption
 	isGroup() bool
+	permissions() *int64
 }
 
 func (c *Client) HandleSlashCommand(cmd SlashCommandObject) {
@@ -74,10 +75,11 @@ func (c *Client) Start() error {
 	for _, cmd := range c.commands {
 		v := cmd.build()
 		cmds = append(cmds, &discordgo.ApplicationCommand{
-			Name:        v.Name,
-			Description: v.Description,
-			Options:     v.Options,
-			Type:        discordgo.ChatApplicationCommand,
+			Name:                     v.Name,
+			Description:              v.Description,
+			Options:                  v.Options,
+			Type:                     discordgo.ChatApplicationCommand,
+			DefaultMemberPermissions: cmd.permissions(),
 		})
 	}
 	for _, cmd := range c.contextMenus {
