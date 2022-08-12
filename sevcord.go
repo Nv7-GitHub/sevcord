@@ -37,6 +37,7 @@ func NewClient(token string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	dg.Identify.Intents = discordgo.IntentsNone // TODO: Detect for message content intent needed/reaction intents needed
 	err = dg.Open()
 	if err != nil {
 		return nil, err
