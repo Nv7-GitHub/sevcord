@@ -7,6 +7,7 @@ import (
 	"os/signal"
 
 	"github.com/Nv7-Github/sevcord"
+	"github.com/Nv7-Github/sevcord/sevutil"
 )
 
 var token = flag.String("token", "", "Discord token")
@@ -131,6 +132,19 @@ func main() {
 						},
 					)
 					ctx.Respond(r)
+				},
+			},
+			&sevcord.SlashCommand{
+				Name:        "pageswitcher",
+				Description: "Test page switcher",
+				Options:     []sevcord.Option{},
+				Handler: func(ctx sevcord.Ctx, args []any) {
+					ctx.Acknowledge()
+					items := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"}
+					sevutil.NewPageSwitcher(ctx, &sevutil.PageSwitcher[[]string]{
+						Title:   "Test Page Switcher",
+						Content: items,
+					})
 				},
 			},
 		},
