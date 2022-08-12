@@ -8,46 +8,45 @@ import (
 	"github.com/Nv7-Github/sevcord"
 )
 
+func PSGetterFromItems[T any](items []T, pageLength int) PageSwitchGetter {
+	vals := make([]string, len(items))
+	for i, item := range items {
+		vals[i] = fmt.Sprintf("%v", item)
+	}
+	return PageSwitchGetter{
+		PageCount: int(math.Ceil(float64(len(items)) / float64(pageLength))),
+		Getter: func(page int) string {
+			v := vals[page*pageLength:]
+			if len(v) > pageLength {
+				v = v[:pageLength]
+			}
+			return strings.Join(v, "\n")
+		},
+	}
+}
+
 type PageSwitchGetter struct {
 	PageCount int
 	Getter    func(page int) string
 }
 
-type PageSwitchData interface {
-	[]string | PageSwitchGetter
-}
-
-type PageSwitcher[T PageSwitchData] struct {
+type PageSwitcher struct {
 	Title   string
-	Content T
+	Content PageSwitchGetter
 
 	// Optional
-	Thumbnail  *string
-	Footer     *string
-	PageLength int // Default: 10
-	Color      int
+	Thumbnail *string
+	Footer    *string
+	Color     int
 
 	// State
 	page int
 }
 
-func (p *PageSwitcher[T]) build() *sevcord.Response {
+func (p *PageSwitcher) build() *sevcord.Response {
 	// Make content
-	var content string
-	var pages int
-	switch cnt := any(p.Content).(type) {
-	case []string:
-		v := cnt[p.page*p.PageLength:]
-		if len(v) > p.PageLength {
-			v = v[:p.PageLength]
-		}
-		content = strings.Join(v, "\n")
-		pages = int(math.Ceil(float64(len(cnt)) / float64(p.PageLength)))
-
-	case PageSwitchGetter:
-		content = cnt.Getter(p.page)
-		pages = cnt.PageCount
-	}
+	content := p.Content.Getter(p.page)
+	pages := p.Content.PageCount
 
 	// Build embed
 	bld := sevcord.NewEmbedBuilder(p.Title).Color(p.Color).Description(content)
@@ -87,9 +86,6 @@ func (p *PageSwitcher[T]) build() *sevcord.Response {
 	return resp
 }
 
-func NewPageSwitcher[T PageSwitchData](c sevcord.Ctx, p *PageSwitcher[T]) {
-	if p.PageLength == 0 {
-		p.PageLength = 10
-	}
+func NewPageSwitcher(c sevcord.Ctx, p *PageSwitcher) {
 	c.Respond(p.build())
 }

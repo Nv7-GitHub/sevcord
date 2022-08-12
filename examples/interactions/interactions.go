@@ -140,10 +140,10 @@ func main() {
 				Options:     []sevcord.Option{},
 				Handler: func(ctx sevcord.Ctx, args []any) {
 					ctx.Acknowledge()
-					items := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"}
-					sevutil.NewPageSwitcher(ctx, &sevutil.PageSwitcher[[]string]{
+					items := []any{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"}
+					sevutil.NewPageSwitcher(ctx, &sevutil.PageSwitcher{
 						Title:   "Test Page Switcher",
-						Content: items,
+						Content: sevutil.PSGetterFromItems(items, 10),
 					})
 				},
 			},
