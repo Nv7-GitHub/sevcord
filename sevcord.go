@@ -68,7 +68,6 @@ func (c *Client) HandleContextMenuCommand(cmd *ContextMenuCommand) {
 }
 
 func (c *Client) Start() error {
-	c.dg.Identify.Intents = discordgo.IntentsAllWithoutPrivileged // TODO: Configureable
 	c.dg.AddHandler(c.interactionHandler)
 
 	// Build commands

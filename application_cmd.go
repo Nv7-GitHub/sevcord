@@ -10,7 +10,6 @@ type SlashCommandGroup struct {
 	Permissions *Permissions // Leave nil for everyone to use, only works for top-level commands
 }
 
-// TODO: Application command perms
 type SlashCommand struct {
 	Name        string
 	Description string
