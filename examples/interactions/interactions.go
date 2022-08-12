@@ -94,7 +94,7 @@ func main() {
 						&sevcord.Button{Label: "Emoji Button", Style: sevcord.ButtonStylePrimary, Emoji: sevcord.ComponentEmojiDefault('😳'), Handler: func(ctx sevcord.Ctx) { ctx.Edit(sevcord.MessageResponse("Emoji button pressed")) }},
 						&sevcord.Button{Label: "Link Button", Style: sevcord.ButtonStyleLink, URL: "https://github.com/Nv7-Github/sevcord"},
 						&sevcord.Button{Label: "Modal Button", Style: sevcord.ButtonStylePrimary, Handler: func(ctx sevcord.Ctx) {
-							ctx.Modal(&sevcord.Modal{
+							ctx.(*sevcord.InteractionCtx).Modal(&sevcord.Modal{
 								Title: "Modal",
 								Inputs: []sevcord.ModalInput{
 									{

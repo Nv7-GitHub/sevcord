@@ -11,7 +11,6 @@ type Ctx interface {
 	Acknowledge()
 	Respond(*Response)
 	Edit(*Response)
-	Modal(*Modal)
 
 	Guild() string
 	Channel() string
