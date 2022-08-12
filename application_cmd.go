@@ -104,3 +104,17 @@ type Choice struct {
 
 type AutocompleteHandler func(Ctx, any) []Choice
 type SlashCommandHandler func(Ctx, []any)
+type ContextMenuHandler func(Ctx, string)
+
+type ContextMenuKind int
+
+const (
+	ContextMenuKindMessage = ContextMenuKind(discordgo.MessageApplicationCommand) // The string passed is message ID
+	ContextMenuKindUser    = ContextMenuKind(discordgo.UserApplicationCommand)    // The string passed is User ID
+)
+
+type ContextMenuCommand struct {
+	Kind    ContextMenuKind
+	Name    string
+	Handler ContextMenuHandler
+}

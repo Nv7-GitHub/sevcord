@@ -18,6 +18,11 @@ func (c *Client) interactionHandler(s *discordgo.Session, i *discordgo.Interacti
 		dat := i.ApplicationCommandData()
 		v, exists := c.commands[dat.Name]
 		if !exists {
+			v, exists := c.contextMenus[dat.Name]
+			if !exists {
+				return
+			}
+			v.Handler(ctx, dat.TargetID)
 			return
 		}
 		cmdOpts := dat.Options

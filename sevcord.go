@@ -24,7 +24,8 @@ type modalHandler struct {
 type Client struct {
 	dg *discordgo.Session
 
-	commands map[string]SlashCommandObject
+	commands     map[string]SlashCommandObject
+	contextMenus map[string]*ContextMenuCommand
 
 	componentHandlers map[string]componentHandler // map[interactionid]handler
 	modalHandlers     map[string]modalHandler     // map[interactionid]handler
@@ -43,6 +44,7 @@ func NewClient(token string) (*Client, error) {
 	return &Client{
 		dg:                dg,
 		commands:          make(map[string]SlashCommandObject),
+		contextMenus:      make(map[string]*ContextMenuCommand),
 		componentHandlers: make(map[string]componentHandler),
 		modalHandlers:     make(map[string]modalHandler),
 		lock:              &sync.RWMutex{},
@@ -59,6 +61,10 @@ func (c *Client) HandleSlashCommand(cmd SlashCommandObject) {
 	c.commands[cmd.name()] = cmd
 }
 
+func (c *Client) HandleContextMenuCommand(cmd *ContextMenuCommand) {
+	c.contextMenus[cmd.Name] = cmd
+}
+
 func (c *Client) Start() error {
 	c.dg.Identify.Intents = discordgo.IntentsAllWithoutPrivileged // TODO: Configureable
 	c.dg.AddHandler(c.interactionHandler)
@@ -72,6 +78,12 @@ func (c *Client) Start() error {
 			Description: v.Description,
 			Options:     v.Options,
 			Type:        discordgo.ChatApplicationCommand,
+		})
+	}
+	for _, cmd := range c.contextMenus {
+		cmds = append(cmds, &discordgo.ApplicationCommand{
+			Name: cmd.Name,
+			Type: discordgo.ApplicationCommandType(cmd.Kind),
 		})
 	}
 	_, err := c.dg.ApplicationCommandBulkOverwrite(c.dg.State.User.ID, "", cmds)

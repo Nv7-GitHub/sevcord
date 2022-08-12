@@ -135,6 +135,20 @@ func main() {
 			},
 		},
 	})
+	c.HandleContextMenuCommand(&sevcord.ContextMenuCommand{
+		Kind: sevcord.ContextMenuKindMessage,
+		Name: "Message Command",
+		Handler: func(ctx sevcord.Ctx, id string) {
+			ctx.Respond(sevcord.MessageResponse(fmt.Sprintf("This message's ID is `%s`!", id)))
+		},
+	})
+	c.HandleContextMenuCommand(&sevcord.ContextMenuCommand{
+		Kind: sevcord.ContextMenuKindUser,
+		Name: "User Command",
+		Handler: func(ctx sevcord.Ctx, id string) {
+			ctx.Respond(sevcord.MessageResponse(fmt.Sprintf("That user is <@%s>!", id)))
+		},
+	})
 
 	fmt.Println("Starting...")
 	err = c.Start()
