@@ -32,12 +32,21 @@ type Client struct {
 	lock              *sync.RWMutex
 }
 
-func NewClient(token string) (*Client, error) {
+type ClientParams struct {
+	Messages bool // Whether to listen for messages
+}
+
+func NewClient(token string, params *ClientParams) (*Client, error) {
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return nil, err
 	}
 	dg.Identify.Intents = discordgo.IntentsNone // TODO: Detect for message content intent needed/reaction intents needed
+	if params != nil {
+		if params.Messages {
+			dg.Identify.Intents |= discordgo.IntentGuildMessages | discordgo.IntentMessageContent
+		}
+	}
 	err = dg.Open()
 	if err != nil {
 		return nil, err

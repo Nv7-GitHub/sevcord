@@ -15,7 +15,7 @@ var token = flag.String("token", "", "Discord token")
 func init() { flag.Parse() }
 
 func main() {
-	c, err := sevcord.NewClient(*token)
+	c, err := sevcord.NewClient(*token, nil)
 	if err != nil {
 		panic(err)
 	}

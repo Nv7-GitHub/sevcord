@@ -1,7 +1,6 @@
 package sevcord
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/bwmarrin/discordgo"
@@ -53,34 +52,11 @@ func (i *InteractionCtx) send(r *Response, edit bool) {
 		embs = []*discordgo.MessageEmbed{r.embed}
 	}
 
-	var comps []discordgo.MessageComponent
-	if r.components != nil {
-		handlers := make(map[string]interface{})
-		comps = make([]discordgo.MessageComponent, 0, len(r.components))
-		for ind, r := range r.components {
-			row := make([]discordgo.MessageComponent, 0, len(r))
-			for j, c := range r {
-				id := fmt.Sprintf("%d_%d", j, ind)
-				handlers[id] = c.handler()
-				v := c.build(i.i.ID + ":" + id)
-				row = append(row, v)
-			}
-			comps = append(comps, discordgo.ActionsRow{
-				Components: row,
-			})
-		}
-
-		v := componentHandler{
-			handlers: handlers,
-		}
-		if i.followup {
-			v.followup = &i.followupid
-		}
-
-		i.c.lock.Lock()
-		i.c.componentHandlers[i.i.ID] = v
-		i.c.lock.Unlock()
+	var followup *string = nil
+	if i.followup {
+		followup = &i.followupid
 	}
+	comps := r.registerComponents(i.c, i.i.ID, followup)
 
 	if i.followup && !(edit && i.component) {
 		if edit && !i.component {
@@ -189,4 +165,75 @@ func (i *InteractionCtx) Modal(m *Modal) {
 	if err != nil {
 		Logger.Println(err)
 	}
+}
+
+type MessageCtx struct {
+	c      *Client
+	s      *discordgo.Session
+	m      *discordgo.MessageCreate
+	typing bool
+	respid string
+}
+
+func (m *MessageCtx) Acknowledge() {
+	m.s.ChannelTyping(m.m.ChannelID)
+	m.typing = true
+}
+
+func (m *MessageCtx) Respond(r *Response) {
+	if m.typing {
+		m.s.ChannelTyping(m.m.ChannelID)
+		m.typing = false
+	}
+
+	var embs []*discordgo.MessageEmbed
+	if r.embed != nil {
+		embs = []*discordgo.MessageEmbed{r.embed}
+	}
+	res, err := m.s.ChannelMessageSendComplex(m.m.ChannelID, &discordgo.MessageSend{
+		Content:    r.content,
+		Embeds:     embs,
+		Components: r.registerComponents(m.c, m.m.ID, nil),
+		Files:      r.files,
+	})
+	if err != nil {
+		Logger.Println(err)
+		return
+	}
+
+	m.respid = res.ID
+}
+
+func (m *MessageCtx) Edit(r *Response) {
+	if m.typing {
+		m.s.ChannelTyping(m.m.ChannelID)
+		m.typing = false
+	}
+
+	var embs []*discordgo.MessageEmbed
+	if r.embed != nil {
+		embs = []*discordgo.MessageEmbed{r.embed}
+	}
+	var cont *string = nil
+	if r.content != "" {
+		cont = &r.content
+	}
+	_, err := m.s.ChannelMessageEditComplex(&discordgo.MessageEdit{
+		Content:    cont,
+		Embeds:     embs,
+		Components: r.registerComponents(m.c, m.m.ID, nil),
+	})
+	if err != nil {
+		Logger.Println(err)
+		return
+	}
+}
+
+func (m *MessageCtx) Guild() string   { return m.m.GuildID }
+func (m *MessageCtx) Channel() string { return m.m.ChannelID }
+func (m *MessageCtx) User() *User {
+	if m.m.Member != nil {
+		return userFromMember(m.m.Member)
+	}
+	return userFromUser(m.m.Author)
 }

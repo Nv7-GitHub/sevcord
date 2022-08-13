@@ -2,6 +2,7 @@ package sevcord
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"io"
 	"sort"
@@ -96,6 +97,39 @@ type Response struct {
 	embed      *discordgo.MessageEmbed
 	components [][]Component
 	files      []*discordgo.File
+}
+
+// randid just has to be a random id, usually interaction id/message id
+func (r *Response) registerComponents(c *Client, randid string, followup *string) []discordgo.MessageComponent {
+	if r.components == nil {
+		return nil
+	}
+
+	handlers := make(map[string]interface{})
+	comps := make([]discordgo.MessageComponent, 0, len(r.components))
+	for ind, r := range r.components {
+		row := make([]discordgo.MessageComponent, 0, len(r))
+		for j, c := range r {
+			id := fmt.Sprintf("%d_%d", j, ind)
+			handlers[id] = c.handler()
+			v := c.build(randid + ":" + id)
+			row = append(row, v)
+		}
+		comps = append(comps, discordgo.ActionsRow{
+			Components: row,
+		})
+	}
+
+	v := componentHandler{
+		handlers: handlers,
+		followup: followup,
+	}
+
+	c.lock.Lock()
+	c.componentHandlers[randid] = v
+	c.lock.Unlock()
+
+	return comps
 }
 
 func MessageResponse(message string) *Response {
