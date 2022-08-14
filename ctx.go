@@ -229,8 +229,9 @@ func (m *MessageCtx) Edit(r *Response) {
 	}
 }
 
-func (m *MessageCtx) Guild() string   { return m.m.GuildID }
-func (m *MessageCtx) Channel() string { return m.m.ChannelID }
+func (m *MessageCtx) Guild() string               { return m.m.GuildID }
+func (m *MessageCtx) Channel() string             { return m.m.ChannelID }
+func (m *MessageCtx) session() *discordgo.Session { return m.s }
 func (m *MessageCtx) User() *User {
 	if m.m.Member != nil {
 		return userFromMember(m.m.Member)

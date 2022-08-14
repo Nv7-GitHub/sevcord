@@ -20,6 +20,15 @@ func main() {
 	}
 
 	// Handlers
+	c.HandleMessage(func(c sevcord.Ctx, m *sevcord.Message) {
+		if c.User().Bot {
+			return // Ignore bots
+		}
+
+		if m.Content == "ping" {
+			c.Respond(sevcord.MessageResponse("Pong! 🏓"))
+		}
+	})
 
 	fmt.Println("Starting...")
 	err = c.Start()

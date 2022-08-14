@@ -82,6 +82,7 @@ func (s *SlashCommand) permissions() *int64 {
 type SlashCommandAttachment struct {
 	Filename    string
 	URL         string
+	ProxyURL    string // Use this to download
 	ContentType string
 }
 

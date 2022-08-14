@@ -471,3 +471,107 @@ func CreateRole(c Ctx, r *Role, guild string) (*Role, error) {
 func DeleteRole(c Ctx, id string, guild string) error {
 	return c.session().GuildRoleDelete(guild, id)
 }
+
+// Messages
+
+type MessageAttachment struct {
+	ID        string
+	Filename  string
+	URL       string
+	ProxyURL  string // Use this to download
+	Size      int
+	Ephemeral bool
+
+	// Image options
+	Width  int
+	Height int
+}
+
+type MessageFlags int
+
+// All possible message flags on a message event
+const (
+	MessageFlagPublished   = MessageFlags(discordgo.MessageFlagsCrossPosted)   // Whether the message was published to another channel
+	MessageFlagCrossPosted = MessageFlags(discordgo.MessageFlagsIsCrossPosted) // Whether the message was received from an announcement channel
+	MessageFlagLoading     = MessageFlags(discordgo.MessageFlagsLoading)       // "The bot is thinking..."
+)
+
+type ReplyFrom struct {
+	Message string
+	Channel string
+	Guild   string
+}
+
+// TODO: Interaction info & embed info
+type Message struct {
+	ID          string
+	Channel     string     // The ID of the channel the message was sent in
+	Guild       string     // THE ID of the guild the message was sent in
+	EditedTime  *time.Time // The time when the message was edited, nil if not edited
+	Author      *User
+	Attachments []MessageAttachment
+	Content     string
+	TTS         bool
+	ReplyFrom   *ReplyFrom // What this message is replying to (if any)
+
+	// Mentions
+	Mentions        []*User  // Users mentioned (NOTE: This does not include their guild data)
+	MentionRoles    []string // Role IDs mentioned
+	MentionEveryone bool     // Mentions everyone
+}
+
+func messageFromDg(m *discordgo.Message) *Message {
+	var auth *User
+	if m.Author != nil {
+		auth = userFromUser(m.Author)
+	}
+	if m.Member != nil {
+		m.Member.User = m.Author
+		auth = userFromMember(m.Member)
+	}
+	var attachments []MessageAttachment
+	if m.Attachments != nil {
+		attachments := make([]MessageAttachment, len(m.Attachments))
+		for i, v := range m.Attachments {
+			attachments[i] = MessageAttachment{
+				ID:        v.ID,
+				Filename:  v.Filename,
+				URL:       v.URL,
+				ProxyURL:  v.ProxyURL,
+				Size:      v.Size,
+				Width:     v.Width,
+				Height:    v.Height,
+				Ephemeral: v.Ephemeral,
+			}
+		}
+	}
+	var replyFrom *ReplyFrom
+	if m.MessageReference != nil {
+		replyFrom = &ReplyFrom{
+			Message: m.MessageReference.MessageID,
+			Channel: m.MessageReference.ChannelID,
+			Guild:   m.MessageReference.GuildID,
+		}
+	}
+	var mentions []*User
+	if m.Mentions != nil {
+		mentions = make([]*User, len(m.Mentions))
+		for i, v := range m.Mentions {
+			mentions[i] = userFromUser(v)
+		}
+	}
+	return &Message{
+		ID:              m.ID,
+		Channel:         m.ChannelID,
+		Guild:           m.GuildID,
+		EditedTime:      m.EditedTimestamp,
+		Author:          auth,
+		Attachments:     attachments,
+		Content:         m.Content,
+		TTS:             m.TTS,
+		ReplyFrom:       replyFrom,
+		Mentions:        mentions,
+		MentionRoles:    m.MentionRoles,
+		MentionEveryone: m.MentionEveryone,
+	}
+}

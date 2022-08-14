@@ -26,6 +26,7 @@ type Client struct {
 
 	commands     map[string]SlashCommandObject
 	contextMenus map[string]*ContextMenuCommand
+	mHandler     *MessageHandler
 
 	componentHandlers map[string]componentHandler // map[interactionid]handler
 	modalHandlers     map[string]modalHandler     // map[interactionid]handler
@@ -33,7 +34,8 @@ type Client struct {
 }
 
 type ClientParams struct {
-	Messages bool // Whether to listen for messages
+	Messages  bool // Whether to listen for messages
+	Reactions bool // Whether to listen for reactions
 }
 
 func NewClient(token string, params *ClientParams) (*Client, error) {
@@ -45,6 +47,9 @@ func NewClient(token string, params *ClientParams) (*Client, error) {
 	if params != nil {
 		if params.Messages {
 			dg.Identify.Intents |= discordgo.IntentGuildMessages | discordgo.IntentMessageContent
+		}
+		if params.Reactions {
+			dg.Identify.Intents |= discordgo.IntentGuildMessageReactions
 		}
 	}
 	err = dg.Open()
@@ -76,8 +81,16 @@ func (c *Client) HandleContextMenuCommand(cmd *ContextMenuCommand) {
 	c.contextMenus[cmd.Name] = cmd
 }
 
+// HandleMessage updates the internal message handler. NOTE: This will replace the previous handler if there was one
+func (c *Client) HandleMessage(m MessageHandler) {
+	c.mHandler = &m
+}
+
 func (c *Client) Start() error {
 	c.dg.AddHandler(c.interactionHandler)
+	if c.mHandler != nil {
+		c.dg.AddHandler(c.messageHandler)
+	}
 
 	// Build commands
 	cmds := make([]*discordgo.ApplicationCommand, 0, len(c.commands))

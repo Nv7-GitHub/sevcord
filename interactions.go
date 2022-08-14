@@ -165,6 +165,7 @@ func optToAny(opt *discordgo.ApplicationCommandInteractionDataOption, i discordg
 		return &SlashCommandAttachment{
 			Filename:    att.Filename,
 			URL:         att.URL,
+			ProxyURL:    att.ProxyURL,
 			ContentType: att.ContentType,
 		}
 
