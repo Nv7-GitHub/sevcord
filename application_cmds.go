@@ -14,15 +14,33 @@ type SlashCommandGroup struct {
 	Name        string
 	Description string
 	Children    []SlashCommandObject
-	Permissions *int // Discordgo permissions bit mask, leave nil to allow everyone to use the command, only works for top-level commands
+	Permissions *int
+}
+
+func NewSlashCommandGroup(name string, description string, children ...SlashCommandObject) *SlashCommandGroup {
+	return &SlashCommandGroup{Name: name, Description: description, Children: children}
+}
+
+// RequirePermissions accepts a discordgo permissions bit mask
+func (s *SlashCommandGroup) RequirePermissions(p int) {
+	s.Permissions = &p
 }
 
 type SlashCommand struct {
 	Name        string
 	Description string
 	Options     []Option
-	Permissions *int // Discordgo permissions bit mask, leave nil to allow everyone to use the command, only works for top-level commands
+	Permissions *int
 	Handler     SlashCommandHandler
+}
+
+func NewSlashCommand(name, description string, handler SlashCommandHandler, options ...Option) *SlashCommand {
+	return &SlashCommand{Name: name, Description: description, Options: options, Handler: handler}
+}
+
+// RequirePermissions accepts a discordgo permissions bit mask
+func (s *SlashCommand) RequirePermissions(p int) {
+	s.Permissions = &p
 }
 
 func (s *SlashCommandGroup) name() string { return s.Name }
@@ -120,9 +138,30 @@ type Option struct {
 	Autocomplete AutocompleteHandler // Optional
 }
 
+func NewOption(name, description string, kind OptionKind, required bool) Option {
+	return Option{Name: name, Description: description, Kind: kind, Required: required}
+}
+
+func (o Option) AddChoices(c Choice) Option {
+	if o.Choices == nil {
+		o.Choices = make([]Choice, 0)
+	}
+	o.Choices = append(o.Choices, c)
+	return o
+}
+
+func (o Option) AutoComplete(a AutocompleteHandler) Option {
+	o.Autocomplete = a
+	return o
+}
+
 type Choice struct {
 	Name  string
 	Value string
+}
+
+func NewChoice(name, value string) Choice {
+	return Choice{Name: name, Value: value}
 }
 
 type AutocompleteHandler func(Ctx, any) []Choice
