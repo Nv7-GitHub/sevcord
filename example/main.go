@@ -4,7 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 
-	"github.com/Nv7-Github/sevcord"
+	"github.com/Nv7-Github/sevcord/v2"
 )
 
 //go:embed token.txt
