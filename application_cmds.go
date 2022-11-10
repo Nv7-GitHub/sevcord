@@ -2,27 +2,34 @@ package sevcord
 
 import "github.com/bwmarrin/discordgo"
 
-// NOTE: Can only have 2 of these and then a command
+type SlashCommandObject interface {
+	name() string
+	dg() *discordgo.ApplicationCommandOption
+	isGroup() bool
+	permissions() *int64
+}
+
+// NOTE: Can only have 2 levels of subcommands
 type SlashCommandGroup struct {
 	Name        string
 	Description string
 	Children    []SlashCommandObject
-	Permissions *int // Leave nil to allow everyone to use the command, only works for top-level commands
+	Permissions *int // Discordgo permissions bit mask, leave nil to allow everyone to use the command, only works for top-level commands
 }
 
 type SlashCommand struct {
 	Name        string
 	Description string
 	Options     []Option
-	Permissions *int // Leave nil to allow everyone to use the command, only works for top-level commands
+	Permissions *int // Discordgo permissions bit mask, leave nil to allow everyone to use the command, only works for top-level commands
 	Handler     SlashCommandHandler
 }
 
 func (s *SlashCommandGroup) name() string { return s.Name }
-func (s *SlashCommandGroup) build() *discordgo.ApplicationCommandOption {
+func (s *SlashCommandGroup) dg() *discordgo.ApplicationCommandOption {
 	children := make([]*discordgo.ApplicationCommandOption, len(s.Children))
 	for i, child := range s.Children {
-		children[i] = child.build()
+		children[i] = child.dg()
 		if child.isGroup() {
 			children[i].Type = discordgo.ApplicationCommandOptionSubCommandGroup
 		} else {
@@ -44,13 +51,13 @@ func (s *SlashCommandGroup) permissions() *int64 {
 	return nil
 }
 func (s *SlashCommand) name() string { return s.Name }
-func (s *SlashCommand) build() *discordgo.ApplicationCommandOption {
+func (s *SlashCommand) dg() *discordgo.ApplicationCommandOption {
 	opts := make([]*discordgo.ApplicationCommandOption, len(s.Options))
 	for i, opt := range s.Options {
 		opts[i] = &discordgo.ApplicationCommandOption{
 			Name:         opt.Name,
 			Description:  opt.Description,
-			Type:         opt.Kind.build(),
+			Type:         opt.Kind.dg(),
 			Required:     opt.Required,
 			Autocomplete: opt.Autocomplete != nil,
 		}
@@ -99,7 +106,7 @@ const (
 	OptionKindAttachment                   // *SlashCommandAttachment
 )
 
-func (o OptionKind) build() discordgo.ApplicationCommandOptionType {
+func (o OptionKind) dg() discordgo.ApplicationCommandOptionType {
 	return [...]discordgo.ApplicationCommandOptionType{discordgo.ApplicationCommandOptionString, discordgo.ApplicationCommandOptionInteger, discordgo.ApplicationCommandOptionBoolean, discordgo.ApplicationCommandOptionUser, discordgo.ApplicationCommandOptionChannel, discordgo.ApplicationCommandOptionRole, discordgo.ApplicationCommandOptionNumber, discordgo.ApplicationCommandOptionAttachment}[o]
 }
 
