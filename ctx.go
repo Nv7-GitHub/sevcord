@@ -1,6 +1,10 @@
 package sevcord
 
-import "io"
+import (
+	"io"
+
+	"github.com/bwmarrin/discordgo"
+)
 
 type MessageSend struct {
 	content string
@@ -38,8 +42,9 @@ type EmbedBuilder struct {
 }
 
 type Ctx interface {
+	Dg() *discordgo.Session        // Allows access to underlying discordgo session
 	Acknowledge() error            // Indicates progress
-	Respond(msg MessageSend) error // Displays message to user
+	Respond(msg MessageSend) error // Displays message to user (note: in interactions, if not acknowledged this will be ephemeral)
 }
 
 // Builder methods
@@ -109,11 +114,14 @@ func (e EmbedBuilder) AddField(name, value string, inline bool) EmbedBuilder {
 }
 
 func NewMessage(content string) MessageSend {
-	return MessageSend{content: content, files: make([]struct {
-		name        string
-		contentType string
-		reader      io.Reader
-	}, 0)}
+	return MessageSend{content: content,
+		files: make([]struct {
+			name        string
+			contentType string
+			reader      io.Reader
+		}, 0),
+		embeds: make([]EmbedBuilder, 0),
+	}
 }
 
 func (m MessageSend) Content(content string) MessageSend {
@@ -142,4 +150,73 @@ func (m MessageSend) Reply(messageID, channelID, guildID string) MessageSend {
 		guildID   string
 	}{messageID, channelID, guildID}
 	return m
+}
+
+func (e EmbedBuilder) dg() *discordgo.MessageEmbed {
+	embed := &discordgo.MessageEmbed{
+		URL:         e.url,
+		Title:       e.title,
+		Description: e.description,
+		Timestamp:   e.timestamp,
+		Color:       e.color,
+	}
+	if e.image != "" {
+		embed.Image = &discordgo.MessageEmbedImage{
+			URL: e.image,
+		}
+	}
+	if e.footerText != "" || e.footerIcon != "" {
+		embed.Footer = &discordgo.MessageEmbedFooter{
+			Text:    e.footerText,
+			IconURL: e.footerIcon,
+		}
+	}
+	if e.thumbnail != "" {
+		embed.Thumbnail = &discordgo.MessageEmbedThumbnail{
+			URL: e.thumbnail,
+		}
+	}
+	if e.authorURL != "" || e.authorName != "" || e.authorIcon != "" {
+		embed.Author = &discordgo.MessageEmbedAuthor{
+			URL:     e.authorURL,
+			Name:    e.authorName,
+			IconURL: e.authorIcon,
+		}
+	}
+	fields := make([]*discordgo.MessageEmbedField, len(e.fields))
+	for i, field := range e.fields {
+		fields[i] = &discordgo.MessageEmbedField{
+			Name:   field.name,
+			Value:  field.value,
+			Inline: field.inline,
+		}
+	}
+	embed.Fields = fields
+	return embed
+}
+
+func (m MessageSend) dg() *discordgo.MessageSend {
+	msg := &discordgo.MessageSend{
+		Content: m.content,
+		Embeds:  make([]*discordgo.MessageEmbed, len(m.embeds)),
+		Files:   make([]*discordgo.File, len(m.files)),
+	}
+	for i, embed := range m.embeds {
+		msg.Embeds[i] = embed.dg()
+	}
+	for i, file := range m.files {
+		msg.Files[i] = &discordgo.File{
+			Name:        file.name,
+			ContentType: file.contentType,
+			Reader:      file.reader,
+		}
+	}
+	if m.reply != nil {
+		msg.Reference = &discordgo.MessageReference{
+			MessageID: m.reply.messageID,
+			ChannelID: m.reply.channelID,
+			GuildID:   m.reply.guildID,
+		}
+	}
+	return msg
 }
