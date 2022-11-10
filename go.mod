@@ -1,4 +1,4 @@
-module github.com/Nv7-Github/sevcord
+module github.com/Nv7-Github/sevcord/v2
 
 go 1.18
 
