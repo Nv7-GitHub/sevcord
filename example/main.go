@@ -43,10 +43,8 @@ func main() {
 	bot.RegisterSlashCommand(sevcord.NewSlashCommand("modal", "Modal demo", func(ctxV sevcord.Ctx, params []any) {
 		ctx := ctxV.(*sevcord.InteractionCtx)
 		ctx.Modal(sevcord.NewModal("Modal", func(ctx sevcord.Ctx, values []string) {
-			err := ctx.Acknowledge()
-			fmt.Println(err)
-			err = ctx.Respond(sevcord.NewMessage(fmt.Sprintf("You entered: `%v`", values[0])))
-			fmt.Println(err)
+			ctx.Acknowledge()
+			ctx.Respond(sevcord.NewMessage(fmt.Sprintf("You entered: `%v`", values[0])))
 		}).
 			Input(sevcord.NewModalInput("text", "Text input", sevcord.ModalInputStyleSentence, 240)).
 			Input(sevcord.NewModalInput("paragraph", "Paragraph input", sevcord.ModalInputStyleParagraph, 2400)),
