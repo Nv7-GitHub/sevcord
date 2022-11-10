@@ -28,7 +28,7 @@ func main() {
 	})))
 	bot.RegisterSlashCommand(sevcord.NewSlashCommand("select", "Select menu demo", func(ctx sevcord.Ctx, params []any) {
 		ctx.Acknowledge()
-		err := ctx.Respond(sevcord.NewMessage("Check out these select menus").
+		ctx.Respond(sevcord.NewMessage("Check out these select menus").
 			AddComponentRow(
 				sevcord.NewSelect("Select menu", "select", "").
 					Option(sevcord.NewSelectOption("Option 1", "First option", "1")).
@@ -39,7 +39,6 @@ func main() {
 					SetRange(0, 3), // Allows users to select unlimited instead of default of 1
 			),
 		)
-		fmt.Println(err)
 	}))
 	bot.AddButtonHandler("click", func(ctx sevcord.Ctx, params string) {
 		// Uses params to see whether author is pressing
