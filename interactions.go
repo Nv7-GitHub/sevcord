@@ -1,6 +1,8 @@
 package sevcord
 
 import (
+	"strings"
+
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -8,6 +10,7 @@ type InteractionCtx struct {
 	dg           *discordgo.Session
 	i            *discordgo.Interaction
 	acknowledged bool
+	component    bool // If component, then update
 }
 
 func (i *InteractionCtx) Dg() *discordgo.Session {
@@ -16,6 +19,9 @@ func (i *InteractionCtx) Dg() *discordgo.Session {
 
 func (i *InteractionCtx) Acknowledge() error {
 	i.acknowledged = true
+	if i.component { // if component, then make it so that response will be ephemeral instead of update
+		return nil
+	}
 	return i.dg.InteractionRespond(i.i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 	})
@@ -32,6 +38,17 @@ func (i *InteractionCtx) Respond(msg MessageSend) error {
 		})
 		return err
 	}
+	if i.component && !i.acknowledged { // if acknowledged, then update instead of ephemeral (no non-ephemeral response allowed on components since no one needs that)
+		return i.dg.InteractionRespond(i.i, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseUpdateMessage,
+			Data: &discordgo.InteractionResponseData{
+				Content:    b.Content,
+				Files:      b.Files,
+				Embeds:     b.Embeds,
+				Components: b.Components,
+			},
+		})
+	}
 	return i.dg.InteractionRespond(i.i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -44,6 +61,10 @@ func (i *InteractionCtx) Respond(msg MessageSend) error {
 	})
 }
 
+func (i *InteractionCtx) Author() *discordgo.User {
+	return i.i.Member.User
+}
+
 func (s *Sevcord) interactionHandler(dg *discordgo.Session, i *discordgo.InteractionCreate) {
 	ctx := &InteractionCtx{
 		dg: dg,
@@ -53,7 +74,9 @@ func (s *Sevcord) interactionHandler(dg *discordgo.Session, i *discordgo.Interac
 	switch i.Type {
 	case discordgo.InteractionApplicationCommand, discordgo.InteractionApplicationCommandAutocomplete:
 		dat := i.ApplicationCommandData()
+		s.lock.RLock()
 		v, exists := s.commands[dat.Name]
+		s.lock.RUnlock()
 		if !exists {
 			return
 		}
@@ -120,6 +143,31 @@ func (s *Sevcord) interactionHandler(dg *discordgo.Session, i *discordgo.Interac
 		}
 
 		v.(*SlashCommand).Handler(ctx, pars)
+
+	case discordgo.InteractionMessageComponent:
+		ctx.component = true
+		dat := i.MessageComponentData()
+		parts := strings.SplitN(dat.CustomID, "|", 2)
+		switch dat.ComponentType {
+		case discordgo.ButtonComponent:
+			s.lock.RLock()
+			v, exists := s.buttonHandlers[parts[0]]
+			s.lock.RUnlock()
+			if !exists {
+				return
+			}
+			v(ctx, parts[1])
+
+		case discordgo.SelectMenuComponent:
+			s.lock.RLock()
+			v, exists := s.selectHandlers[parts[0]]
+			s.lock.RUnlock()
+			if !exists {
+				return
+			}
+
+			v(ctx, parts[1], dat.Values)
+		}
 	}
 }
 

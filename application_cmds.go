@@ -180,3 +180,202 @@ type ContextMenuCommand struct {
 	Name    string
 	Handler ContextMenuHandler
 }
+
+// Components
+
+type ButtonHandler func(ctx Ctx, params string)
+
+type Button struct {
+	Label string
+	Style ButtonStyle
+
+	// Handler
+	Handler string // ID of handler
+	Params  string // Params to pass to handler
+
+	// Optional
+	Emoji    *ComponentEmoji
+	URL      string // Only link button can have this
+	Disabled bool
+}
+
+func NewButton(label string, style ButtonStyle, handler string, params string) *Button {
+	return &Button{
+		Label:    label,
+		Style:    style,
+		Handler:  handler,
+		Params:   params,
+		Disabled: false,
+	}
+}
+
+func (b *Button) WithEmoji(emoji ComponentEmoji) *Button {
+	b.Emoji = &emoji
+	return b
+}
+
+func (b *Button) SetURL(url string) *Button {
+	b.URL = url
+	return b
+}
+
+func (b *Button) SetDisabled(disabled bool) *Button {
+	b.Disabled = disabled
+	return b
+}
+
+type ComponentEmoji struct {
+	name     string // Make this the raw emoji for a builtin emoji, otherwise the custom emoji name and use ID
+	id       string
+	animated bool
+}
+
+func ComponentEmojiDefault(emoji rune) *ComponentEmoji {
+	return &ComponentEmoji{
+		name: string(emoji),
+	}
+}
+
+func ComponentEmojiCustom(name, id string, animated bool) *ComponentEmoji {
+	return &ComponentEmoji{
+		name:     name,
+		id:       id,
+		animated: animated,
+	}
+}
+
+func (c ComponentEmoji) dg() discordgo.ComponentEmoji {
+	return discordgo.ComponentEmoji{
+		Name:     c.name,
+		ID:       c.id,
+		Animated: c.animated,
+	}
+}
+
+const componentSeperator = "|"
+
+type ButtonStyle int
+
+const (
+	ButtonStylePrimary   ButtonStyle = 1
+	ButtonStyleSecondary ButtonStyle = 2
+	ButtonStyleSuccess   ButtonStyle = 3
+	ButtonStyleDanger    ButtonStyle = 4
+	ButtonStyleLink      ButtonStyle = 5
+)
+
+func (b *Button) dg() discordgo.MessageComponent {
+	v := discordgo.Button{
+		Label:    b.Label,
+		Style:    discordgo.ButtonStyle(b.Style),
+		Disabled: b.Disabled,
+		URL:      b.URL,
+		CustomID: b.Handler + componentSeperator + b.Params,
+	}
+	if b.Emoji != nil {
+		v.Emoji = b.Emoji.dg()
+	}
+	if b.Style == ButtonStyleLink {
+		v.CustomID = ""
+	}
+	return v
+}
+
+type SelectHandler func(ctx Ctx, params string, selected []string)
+
+type Select struct {
+	Placeholder string
+	Options     []SelectOption
+
+	// Handler
+	Handler string // ID of handler
+	Params  string // Params to pass to handler
+
+	// Optional
+	MinValues int
+	MaxValues int
+	Disabled  bool
+}
+
+func NewSelect(placeholder string, handler string, params string) *Select {
+	return &Select{
+		Placeholder: placeholder,
+		Handler:     handler,
+		Params:      params,
+		Disabled:    false,
+	}
+}
+
+func (s *Select) Option(option SelectOption) *Select {
+	s.Options = append(s.Options, option)
+	return s
+}
+
+func (s *Select) SetRange(min, max int) *Select {
+	s.MinValues = min
+	s.MaxValues = max
+	return s
+}
+
+func (s *Select) SetDisabled(disabled bool) *Select {
+	s.Disabled = disabled
+	return s
+}
+
+func (s *Select) dg() discordgo.MessageComponent {
+	v := discordgo.SelectMenu{
+		Placeholder: s.Placeholder,
+		Options:     make([]discordgo.SelectMenuOption, len(s.Options)),
+		MinValues:   &s.MinValues,
+		MaxValues:   s.MaxValues,
+		Disabled:    s.Disabled,
+		CustomID:    s.Handler + componentSeperator + s.Params,
+	}
+	for i, opt := range s.Options {
+		v.Options[i] = discordgo.SelectMenuOption{
+			Label:       opt.Label,
+			Value:       opt.ID,
+			Description: opt.Description,
+			Default:     opt.Default,
+		}
+		if opt.Emoji != nil {
+			v.Options[i].Emoji = opt.Emoji.dg()
+		}
+	}
+	return v
+}
+
+type SelectOption struct {
+	Label       string
+	Description string
+	ID          string // Must be unique
+
+	// Optional
+	Emoji   *ComponentEmoji
+	Default bool // Whether it is automatically ticked
+}
+
+// Modals
+type ModalHandler func(Ctx, []string)
+
+type Modal struct {
+	Title   string
+	Inputs  []ModalInput
+	Handler ModalHandler
+}
+
+type ModalInputStyle int
+
+const (
+	ModalInputStyleSentence  ModalInputStyle = 1
+	ModalInputStyleParagraph ModalInputStyle = 2
+)
+
+type ModalInput struct {
+	Label       string
+	Placeholder string
+	Style       ModalInputStyle
+	Required    bool
+	MinLength   int
+	MaxLength   int
+}

@@ -19,7 +19,10 @@ type MessageSend struct {
 		channelID string
 		guildID   string
 	}
+	components componentGrid
 }
+
+type componentGrid [][]Component
 
 type EmbedBuilder struct {
 	url         string
@@ -41,10 +44,19 @@ type EmbedBuilder struct {
 	}
 }
 
+type Component interface {
+	dg() discordgo.MessageComponent
+}
+
 type Ctx interface {
-	Dg() *discordgo.Session        // Allows access to underlying discordgo session
+	Dg() *discordgo.Session // Allows access to underlying discordgo session
+
+	// Talk to user
 	Acknowledge() error            // Indicates progress
 	Respond(msg MessageSend) error // Displays message to user (note: in interactions, if not acknowledged this will be ephemeral)
+
+	// Get info
+	Author() *discordgo.User
 }
 
 // Builder methods
@@ -120,7 +132,8 @@ func NewMessage(content string) MessageSend {
 			contentType string
 			reader      io.Reader
 		}, 0),
-		embeds: make([]EmbedBuilder, 0),
+		embeds:     make([]EmbedBuilder, 0),
+		components: make([][]Component, 0),
 	}
 }
 
@@ -149,6 +162,11 @@ func (m MessageSend) Reply(messageID, channelID, guildID string) MessageSend {
 		channelID string
 		guildID   string
 	}{messageID, channelID, guildID}
+	return m
+}
+
+func (m MessageSend) AddComponentRow(components ...Component) MessageSend {
+	m.components = append(m.components, components)
 	return m
 }
 
@@ -197,9 +215,10 @@ func (e EmbedBuilder) dg() *discordgo.MessageEmbed {
 
 func (m MessageSend) dg() *discordgo.MessageSend {
 	msg := &discordgo.MessageSend{
-		Content: m.content,
-		Embeds:  make([]*discordgo.MessageEmbed, len(m.embeds)),
-		Files:   make([]*discordgo.File, len(m.files)),
+		Content:    m.content,
+		Embeds:     make([]*discordgo.MessageEmbed, len(m.embeds)),
+		Files:      make([]*discordgo.File, len(m.files)),
+		Components: m.components.dg(),
 	}
 	for i, embed := range m.embeds {
 		msg.Embeds[i] = embed.dg()
@@ -219,4 +238,17 @@ func (m MessageSend) dg() *discordgo.MessageSend {
 		}
 	}
 	return msg
+}
+
+func (c componentGrid) dg() []discordgo.MessageComponent {
+	components := make([]discordgo.MessageComponent, len(c))
+	for i, row := range c {
+		components[i] = &discordgo.ActionsRow{
+			Components: make([]discordgo.MessageComponent, len(row)),
+		}
+		for j, component := range row {
+			components[i].(*discordgo.ActionsRow).Components[j] = component.dg()
+		}
+	}
+	return components
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -13,11 +14,18 @@ import (
 var Logger = log.Default()
 
 type Sevcord struct {
-	dg       *discordgo.Session // Note: only use this to create cmds, give one provided with handlers for user
-	commands map[string]SlashCommandObject
+	lock *sync.RWMutex
+
+	dg             *discordgo.Session // Note: only use this to create cmds, give one provided with handlers for user
+	commands       map[string]SlashCommandObject
+	buttonHandlers map[string]ButtonHandler
+	selectHandlers map[string]SelectHandler
 }
 
 func (s *Sevcord) RegisterSlashCommand(cmd SlashCommandObject) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	s.commands[cmd.name()] = cmd
 }
 
@@ -27,24 +35,46 @@ func New(token string) (*Sevcord, error) {
 		return nil, err
 	}
 	return &Sevcord{
-		dg:       dg,
-		commands: make(map[string]SlashCommandObject),
+		lock:           &sync.RWMutex{},
+		dg:             dg,
+		commands:       make(map[string]SlashCommandObject),
+		buttonHandlers: make(map[string]ButtonHandler),
+		selectHandlers: make(map[string]SelectHandler),
 	}, nil
 }
 
+func (s *Sevcord) AddButtonHandler(id string, handler ButtonHandler) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.buttonHandlers[id] = handler
+}
+
+func (s *Sevcord) AddSelectHandler(id string, handler SelectHandler) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.selectHandlers[id] = handler
+}
+
 func (s *Sevcord) Listen() {
+	s.lock.RLock()
 	// Build commands
 	cmds := make([]*discordgo.ApplicationCommand, 0, len(s.commands))
 	for _, cmd := range s.commands {
 		v := cmd.dg()
+		dmPermission := false
 		cmds = append(cmds, &discordgo.ApplicationCommand{
-			Name:                     v.Name,
-			Description:              v.Description,
-			Options:                  v.Options,
-			Type:                     discordgo.ChatApplicationCommand,
+			Name:        v.Name,
+			Description: v.Description,
+			Options:     v.Options,
+			Type:        discordgo.ChatApplicationCommand,
+
 			DefaultMemberPermissions: cmd.permissions(),
+			DMPermission:             &dmPermission,
 		})
 	}
+	s.lock.RUnlock()
 
 	// Handlers
 	s.dg.AddHandler(s.interactionHandler)
