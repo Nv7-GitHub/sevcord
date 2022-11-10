@@ -399,3 +399,38 @@ type ModalInput struct {
 	MinLength   int
 	MaxLength   int
 }
+
+func NewModalInput(label, placeholder string, style ModalInputStyle, maxLength int) ModalInput {
+	return ModalInput{
+		Label:       label,
+		Placeholder: placeholder,
+		Style:       style,
+		Required:    true,
+		MinLength:   1,
+		MaxLength:   maxLength,
+	}
+}
+
+func (m ModalInput) SetRequired(required bool) ModalInput {
+	m.Required = required
+	return m
+}
+
+func (m ModalInput) SetLength(min, max int) ModalInput {
+	m.MinLength = min
+	m.MaxLength = max
+	return m
+}
+
+func NewModal(title string, handler ModalHandler) Modal {
+	return Modal{
+		Title:   title,
+		Handler: handler,
+		Inputs:  make([]ModalInput, 0),
+	}
+}
+
+func (m Modal) Input(inp ModalInput) Modal {
+	m.Inputs = append(m.Inputs, inp)
+	return m
+}

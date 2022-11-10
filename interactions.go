@@ -1,6 +1,7 @@
 package sevcord
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -9,6 +10,7 @@ import (
 type InteractionCtx struct {
 	dg           *discordgo.Session
 	i            *discordgo.Interaction
+	s            *Sevcord
 	acknowledged bool
 	component    bool // If component, then update
 }
@@ -65,10 +67,43 @@ func (i *InteractionCtx) Author() *discordgo.User {
 	return i.i.Member.User
 }
 
+func (i *InteractionCtx) Modal(m Modal) error {
+	comps := make([]discordgo.MessageComponent, len(m.Inputs))
+	for ind, inp := range m.Inputs {
+		comps[ind] = &discordgo.ActionsRow{
+			Components: []discordgo.MessageComponent{
+				discordgo.TextInput{
+					CustomID:    strconv.Itoa(ind),
+					Label:       inp.Label,
+					Style:       discordgo.TextInputStyle(inp.Style),
+					Placeholder: inp.Placeholder,
+					Required:    inp.Required,
+					MinLength:   inp.MinLength,
+					MaxLength:   inp.MaxLength,
+				},
+			},
+		}
+	}
+
+	i.s.lock.Lock()
+	i.s.modalHandlers[i.i.ID] = m.Handler
+	i.s.lock.Unlock()
+
+	return i.dg.InteractionRespond(i.i, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseModal,
+		Data: &discordgo.InteractionResponseData{
+			Title:      m.Title,
+			Components: comps,
+			CustomID:   i.i.ID,
+		},
+	})
+}
+
 func (s *Sevcord) interactionHandler(dg *discordgo.Session, i *discordgo.InteractionCreate) {
 	ctx := &InteractionCtx{
 		dg: dg,
 		i:  i.Interaction,
+		s:  s,
 	}
 
 	switch i.Type {
@@ -168,6 +203,21 @@ func (s *Sevcord) interactionHandler(dg *discordgo.Session, i *discordgo.Interac
 
 			v(ctx, parts[1], dat.Values)
 		}
+
+	case discordgo.InteractionModalSubmit:
+		dat := i.ModalSubmitData()
+		ctx.component = true
+		s.lock.RLock()
+		handler, exists := s.modalHandlers[dat.CustomID]
+		s.lock.RUnlock()
+		if !exists {
+			return
+		}
+		vals := make([]string, len(dat.Components))
+		for i, comp := range dat.Components {
+			vals[i] = comp.(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
+		}
+		handler(ctx, vals)
 	}
 }
 

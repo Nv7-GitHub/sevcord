@@ -20,6 +20,7 @@ type Sevcord struct {
 	commands       map[string]SlashCommandObject
 	buttonHandlers map[string]ButtonHandler
 	selectHandlers map[string]SelectHandler
+	modalHandlers  map[string]ModalHandler
 }
 
 func (s *Sevcord) RegisterSlashCommand(cmd SlashCommandObject) {
@@ -40,6 +41,7 @@ func New(token string) (*Sevcord, error) {
 		commands:       make(map[string]SlashCommandObject),
 		buttonHandlers: make(map[string]ButtonHandler),
 		selectHandlers: make(map[string]SelectHandler),
+		modalHandlers:  make(map[string]ModalHandler),
 	}, nil
 }
 
