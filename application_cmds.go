@@ -303,6 +303,8 @@ func NewSelect(placeholder string, handler string, params string) *Select {
 		Handler:     handler,
 		Params:      params,
 		Disabled:    false,
+		MinValues:   1,
+		MaxValues:   1,
 	}
 }
 
@@ -353,6 +355,24 @@ type SelectOption struct {
 	// Optional
 	Emoji   *ComponentEmoji
 	Default bool // Whether it is automatically ticked
+}
+
+func NewSelectOption(label, description, id string) SelectOption {
+	return SelectOption{
+		Label:       label,
+		Description: description,
+		ID:          id,
+	}
+}
+
+func (s SelectOption) WithEmoji(emoji ComponentEmoji) SelectOption {
+	s.Emoji = &emoji
+	return s
+}
+
+func (s SelectOption) SetDefault(defaulted bool) SelectOption {
+	s.Default = defaulted
+	return s
 }
 
 // Modals

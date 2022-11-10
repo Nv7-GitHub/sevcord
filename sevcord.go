@@ -57,6 +57,11 @@ func (s *Sevcord) AddSelectHandler(id string, handler SelectHandler) {
 	s.selectHandlers[id] = handler
 }
 
+// Dg gets the global discordgo session. NOTE: Only use this to add handlers/intents, use the one provided with Ctx for anything else
+func (s *Sevcord) Dg() *discordgo.Session {
+	return s.dg
+}
+
 func (s *Sevcord) Listen() {
 	s.lock.RLock()
 	// Build commands

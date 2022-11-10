@@ -29,7 +29,7 @@ func (i *InteractionCtx) Acknowledge() error {
 
 func (i *InteractionCtx) Respond(msg MessageSend) error {
 	b := msg.dg()
-	if i.acknowledged {
+	if i.acknowledged && !i.component {
 		_, err := i.dg.FollowupMessageCreate(i.i, true, &discordgo.WebhookParams{
 			Content:    b.Content,
 			Files:      b.Files,
@@ -38,7 +38,7 @@ func (i *InteractionCtx) Respond(msg MessageSend) error {
 		})
 		return err
 	}
-	if i.component && !i.acknowledged { // if acknowledged, then update instead of ephemeral (no non-ephemeral response allowed on components since no one needs that)
+	if i.component && !i.acknowledged { // if not acknowledged, then update instead of ephemeral (no non-ephemeral response allowed on components since no one needs that)
 		return i.dg.InteractionRespond(i.i, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
