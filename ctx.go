@@ -56,7 +56,9 @@ type Ctx interface {
 	Respond(msg MessageSend) error // Displays message to user (note: in interactions, if not acknowledged this will be ephemeral)
 
 	// Get info
-	Author() *discordgo.User
+	Author() *discordgo.Member
+	Channel() string
+	Guild() string
 }
 
 // Builder methods

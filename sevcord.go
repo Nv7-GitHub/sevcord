@@ -13,10 +13,14 @@ import (
 
 var Logger = log.Default()
 
+// MiddlewareFunc accepts context and returns whether or not to continue
+type MiddlewareFunc func(ctx Ctx) (ok bool)
+
 type Sevcord struct {
 	lock *sync.RWMutex
 
 	dg             *discordgo.Session // Note: only use this to create cmds, give one provided with handlers for user
+	middleware     []MiddlewareFunc
 	commands       map[string]SlashCommandObject
 	buttonHandlers map[string]ButtonHandler
 	selectHandlers map[string]SelectHandler
@@ -38,11 +42,20 @@ func New(token string) (*Sevcord, error) {
 	return &Sevcord{
 		lock:           &sync.RWMutex{},
 		dg:             dg,
+		middleware:     make([]MiddlewareFunc, 0),
 		commands:       make(map[string]SlashCommandObject),
 		buttonHandlers: make(map[string]ButtonHandler),
 		selectHandlers: make(map[string]SelectHandler),
 		modalHandlers:  make(map[string]ModalHandler),
 	}, nil
+}
+
+// AddMiddleware adds middleware, a function that is run before every command handler is called. Middleware is run in the order it is added
+func (s *Sevcord) AddMiddleware(m MiddlewareFunc) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.middleware = append(s.middleware, m)
 }
 
 func (s *Sevcord) AddButtonHandler(id string, handler ButtonHandler) {

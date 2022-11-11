@@ -63,8 +63,8 @@ func (i *InteractionCtx) Respond(msg MessageSend) error {
 	})
 }
 
-func (i *InteractionCtx) Author() *discordgo.User {
-	return i.i.Member.User
+func (i *InteractionCtx) Author() *discordgo.Member {
+	return i.i.Member
 }
 
 func (i *InteractionCtx) Modal(m Modal) error {
@@ -97,6 +97,14 @@ func (i *InteractionCtx) Modal(m Modal) error {
 			CustomID:   i.i.ID,
 		},
 	})
+}
+
+func (i *InteractionCtx) Channel() string {
+	return i.i.ChannelID
+}
+
+func (i *InteractionCtx) Guild() string {
+	return i.i.GuildID
 }
 
 func (s *Sevcord) interactionHandler(dg *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -176,6 +184,17 @@ func (s *Sevcord) interactionHandler(dg *discordgo.Session, i *discordgo.Interac
 		for i, opt := range v.(*SlashCommand).Options {
 			pars[i] = opts[opt.Name]
 		}
+
+		// Check midleware
+		s.lock.RLock()
+		for _, mid := range s.middleware {
+			s.lock.RUnlock()
+			if !mid(ctx) {
+				return
+			}
+			s.lock.RLock()
+		}
+		s.lock.RUnlock()
 
 		v.(*SlashCommand).Handler(ctx, pars)
 
