@@ -20,6 +20,10 @@ func (i *InteractionCtx) Dg() *discordgo.Session {
 }
 
 func (i *InteractionCtx) Acknowledge() error {
+	if i.acknowledged {
+		return nil
+	}
+
 	i.acknowledged = true
 	if i.component { // if component, then make it so that response will be ephemeral instead of update
 		return nil
