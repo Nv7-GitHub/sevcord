@@ -37,7 +37,9 @@ func (m *MessageCtx) Respond(msg MessageSend) error {
 }
 
 func (m *MessageCtx) Author() *discordgo.Member {
-	return m.m.Member
+	v := m.m.Member
+	v.User = m.m.Author
+	return v
 }
 
 func (m *MessageCtx) Channel() string {
