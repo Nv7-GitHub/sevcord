@@ -230,14 +230,14 @@ type ComponentEmoji struct {
 	animated bool
 }
 
-func ComponentEmojiDefault(emoji rune) *ComponentEmoji {
-	return &ComponentEmoji{
+func ComponentEmojiDefault(emoji rune) ComponentEmoji {
+	return ComponentEmoji{
 		name: string(emoji),
 	}
 }
 
-func ComponentEmojiCustom(name, id string, animated bool) *ComponentEmoji {
-	return &ComponentEmoji{
+func ComponentEmojiCustom(name, id string, animated bool) ComponentEmoji {
+	return ComponentEmoji{
 		name:     name,
 		id:       id,
 		animated: animated,
