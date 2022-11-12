@@ -49,7 +49,7 @@ func main() {
 					Option(sevcord.NewSelectOption("Option 2", "Second option", "2")).
 					Option(sevcord.NewSelectOption("Default", "This is already selected", "default").
 							SetDefault(true).
-							WithEmoji(*sevcord.ComponentEmojiDefault('😎'))).
+							WithEmoji(sevcord.ComponentEmojiDefault('😎'))).
 					SetRange(0, 3), // Allows users to select unlimited instead of default of 1
 			),
 		)
