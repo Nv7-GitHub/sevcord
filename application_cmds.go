@@ -164,7 +164,7 @@ func NewChoice(name, value string) Choice {
 	return Choice{Name: name, Value: value}
 }
 
-type AutocompleteHandler func(Ctx, any) []Choice
+type AutocompleteHandler func(Ctx, string) []Choice
 type SlashCommandHandler func(Ctx, []any)
 type ContextMenuHandler func(Ctx, string)
 

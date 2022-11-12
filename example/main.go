@@ -36,7 +36,7 @@ func main() {
 		}
 		ctx.Respond(sevcord.NewMessage("Pong!" + msg).
 			AddComponentRow(sevcord.NewButton("Click me!", sevcord.ButtonStylePrimary, "click", ctx.Author().User.ID)))
-	}, sevcord.NewOption("echo", "Echoed in the response", sevcord.OptionKindString, false).AutoComplete(func(ctx sevcord.Ctx, params any) []sevcord.Choice {
+	}, sevcord.NewOption("echo", "Echoed in the response", sevcord.OptionKindString, false).AutoComplete(func(ctx sevcord.Ctx, params string) []sevcord.Choice {
 		return []sevcord.Choice{sevcord.NewChoice("Hello", "Hello"), sevcord.NewChoice("World", "World")}
 	})))
 	// Select menu example

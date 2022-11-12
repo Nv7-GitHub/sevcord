@@ -154,7 +154,7 @@ func (s *Sevcord) interactionHandler(dg *discordgo.Session, i *discordgo.Interac
 				if opt.Focused {
 					for _, vopt := range v.(*SlashCommand).Options {
 						if opt.Name == vopt.Name {
-							res := vopt.Autocomplete(ctx, optToAny(opt, dat, dg))
+							res := vopt.Autocomplete(ctx, opt.StringValue())
 							choices := make([]*discordgo.ApplicationCommandOptionChoice, len(res))
 							for i, choice := range res {
 								choices[i] = &discordgo.ApplicationCommandOptionChoice{
