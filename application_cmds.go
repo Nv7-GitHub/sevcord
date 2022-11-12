@@ -142,11 +142,11 @@ func NewOption(name, description string, kind OptionKind, required bool) Option 
 	return Option{Name: name, Description: description, Kind: kind, Required: required}
 }
 
-func (o Option) AddChoices(c Choice) Option {
+func (o Option) AddChoices(c ...Choice) Option {
 	if o.Choices == nil {
 		o.Choices = make([]Choice, 0)
 	}
-	o.Choices = append(o.Choices, c)
+	o.Choices = append(o.Choices, c...)
 	return o
 }
 
