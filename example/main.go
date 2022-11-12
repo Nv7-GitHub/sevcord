@@ -82,5 +82,12 @@ func main() {
 		err := ctx.Respond(sevcord.NewMessage(fmt.Sprintf("You Selected: `%v`", options)))
 		fmt.Println(err)
 	})
+	// Message handler
+	bot.SetMessageHandler(func(ctx sevcord.Ctx, content string) {
+		ctx.Acknowledge()
+		if content == "ping" {
+			ctx.Respond(sevcord.NewMessage("Pong!"))
+		}
+	})
 	bot.Listen()
 }

@@ -14,11 +14,6 @@ type MessageSend struct {
 		contentType string
 		reader      io.Reader
 	}
-	reply *struct {
-		messageID string
-		channelID string
-		guildID   string
-	}
 	components componentGrid
 }
 
@@ -158,15 +153,6 @@ func (m MessageSend) AddFile(name, contentType string, reader io.Reader) Message
 	return m
 }
 
-func (m MessageSend) Reply(messageID, channelID, guildID string) MessageSend {
-	m.reply = &struct {
-		messageID string
-		channelID string
-		guildID   string
-	}{messageID, channelID, guildID}
-	return m
-}
-
 func (m MessageSend) AddComponentRow(components ...Component) MessageSend {
 	m.components = append(m.components, components)
 	return m
@@ -230,13 +216,6 @@ func (m MessageSend) dg() *discordgo.MessageSend {
 			Name:        file.name,
 			ContentType: file.contentType,
 			Reader:      file.reader,
-		}
-	}
-	if m.reply != nil {
-		msg.Reference = &discordgo.MessageReference{
-			MessageID: m.reply.messageID,
-			ChannelID: m.reply.channelID,
-			GuildID:   m.reply.guildID,
 		}
 	}
 	return msg

@@ -16,11 +16,14 @@ var Logger = log.Default()
 // MiddlewareFunc accepts context and returns whether or not to continue
 type MiddlewareFunc func(ctx Ctx) (ok bool)
 
+type MessageHandler func(ctx Ctx, content string)
+
 type Sevcord struct {
 	lock *sync.RWMutex
 
 	dg             *discordgo.Session // Note: only use this to create cmds, give one provided with handlers for user
 	middleware     []MiddlewareFunc
+	messageHandler MessageHandler
 	commands       map[string]SlashCommandObject
 	buttonHandlers map[string]ButtonHandler
 	selectHandlers map[string]SelectHandler
@@ -32,6 +35,10 @@ func (s *Sevcord) RegisterSlashCommand(cmd SlashCommandObject) {
 	defer s.lock.Unlock()
 
 	s.commands[cmd.name()] = cmd
+}
+
+func (s *Sevcord) SetMessageHandler(handler MessageHandler) {
+	s.messageHandler = handler
 }
 
 func New(token string) (*Sevcord, error) {
@@ -50,7 +57,7 @@ func New(token string) (*Sevcord, error) {
 	}, nil
 }
 
-// AddMiddleware adds middleware, a function that is run before every command handler is called. Middleware is run in the order it is added
+// AddMiddleware adds middleware, a function that is run before every command handler is called. Middleware is run in the order it is added. Note that middleware is not run for message handlers
 func (s *Sevcord) AddMiddleware(m MiddlewareFunc) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -105,9 +112,24 @@ func (s *Sevcord) Listen() {
 		}
 		Logger.Println("Bot Ready")
 	})
+	if s.messageHandler != nil {
+		s.dg.AddHandler(func(d *discordgo.Session, m *discordgo.MessageCreate) {
+			if m.Author.Bot {
+				return
+			}
+			ctx := &MessageCtx{
+				m: m.Message,
+				d: d,
+			}
+			s.messageHandler(ctx, m.Content)
+		})
+	}
 
 	// Open
 	s.dg.Identify.Intents = discordgo.IntentsNone
+	if s.messageHandler != nil {
+		s.dg.Identify.Intents |= discordgo.IntentsGuildMessages
+	}
 	s.dg.Open()
 
 	// Wait
