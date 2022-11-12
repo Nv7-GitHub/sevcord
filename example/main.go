@@ -84,8 +84,8 @@ func main() {
 	})
 	// Message handler
 	bot.SetMessageHandler(func(ctx sevcord.Ctx, content string) {
-		ctx.Acknowledge()
 		if content == "ping" {
+			ctx.Acknowledge()
 			ctx.Respond(sevcord.NewMessage("Pong!"))
 		}
 	})
