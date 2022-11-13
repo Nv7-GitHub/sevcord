@@ -26,7 +26,7 @@ func (m *MessageCtx) Acknowledge() error {
 }
 
 func (m *MessageCtx) Respond(msg MessageSend) error {
-	v := msg.dg()
+	v := msg.Dg()
 	v.Reference = &discordgo.MessageReference{
 		MessageID: m.m.ID,
 		ChannelID: m.m.ChannelID,
@@ -82,7 +82,7 @@ func (i *InteractionCtx) Acknowledge() error {
 }
 
 func (i *InteractionCtx) Respond(msg MessageSend) error {
-	b := msg.dg()
+	b := msg.Dg()
 	if i.acknowledged && !i.component {
 		_, err := i.dg.FollowupMessageCreate(i.i, true, &discordgo.WebhookParams{
 			Content:    b.Content,

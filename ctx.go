@@ -40,7 +40,7 @@ type EmbedBuilder struct {
 }
 
 type Component interface {
-	dg() discordgo.MessageComponent
+	Dg() discordgo.MessageComponent
 }
 
 type Ctx interface {
@@ -158,7 +158,7 @@ func (m MessageSend) AddComponentRow(components ...Component) MessageSend {
 	return m
 }
 
-func (e EmbedBuilder) dg() *discordgo.MessageEmbed {
+func (e EmbedBuilder) Dg() *discordgo.MessageEmbed {
 	embed := &discordgo.MessageEmbed{
 		URL:         e.url,
 		Title:       e.title,
@@ -201,15 +201,15 @@ func (e EmbedBuilder) dg() *discordgo.MessageEmbed {
 	return embed
 }
 
-func (m MessageSend) dg() *discordgo.MessageSend {
+func (m MessageSend) Dg() *discordgo.MessageSend {
 	msg := &discordgo.MessageSend{
 		Content:    m.content,
 		Embeds:     make([]*discordgo.MessageEmbed, len(m.embeds)),
 		Files:      make([]*discordgo.File, len(m.files)),
-		Components: m.components.dg(),
+		Components: m.components.Dg(),
 	}
 	for i, embed := range m.embeds {
-		msg.Embeds[i] = embed.dg()
+		msg.Embeds[i] = embed.Dg()
 	}
 	for i, file := range m.files {
 		msg.Files[i] = &discordgo.File{
@@ -221,14 +221,14 @@ func (m MessageSend) dg() *discordgo.MessageSend {
 	return msg
 }
 
-func (c componentGrid) dg() []discordgo.MessageComponent {
+func (c componentGrid) Dg() []discordgo.MessageComponent {
 	components := make([]discordgo.MessageComponent, len(c))
 	for i, row := range c {
 		components[i] = &discordgo.ActionsRow{
 			Components: make([]discordgo.MessageComponent, len(row)),
 		}
 		for j, component := range row {
-			components[i].(*discordgo.ActionsRow).Components[j] = component.dg()
+			components[i].(*discordgo.ActionsRow).Components[j] = component.Dg()
 		}
 	}
 	return components

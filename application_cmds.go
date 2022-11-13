@@ -244,7 +244,7 @@ func ComponentEmojiCustom(name, id string, animated bool) ComponentEmoji {
 	}
 }
 
-func (c ComponentEmoji) dg() discordgo.ComponentEmoji {
+func (c ComponentEmoji) Dg() discordgo.ComponentEmoji {
 	return discordgo.ComponentEmoji{
 		Name:     c.name,
 		ID:       c.id,
@@ -264,7 +264,7 @@ const (
 	ButtonStyleLink      ButtonStyle = 5
 )
 
-func (b *Button) dg() discordgo.MessageComponent {
+func (b *Button) Dg() discordgo.MessageComponent {
 	v := discordgo.Button{
 		Label:    b.Label,
 		Style:    discordgo.ButtonStyle(b.Style),
@@ -273,7 +273,7 @@ func (b *Button) dg() discordgo.MessageComponent {
 		CustomID: b.Handler + componentSeperator + b.Params,
 	}
 	if b.Emoji != nil {
-		v.Emoji = b.Emoji.dg()
+		v.Emoji = b.Emoji.Dg()
 	}
 	if b.Style == ButtonStyleLink {
 		v.CustomID = ""
@@ -324,7 +324,7 @@ func (s *Select) SetDisabled(disabled bool) *Select {
 	return s
 }
 
-func (s *Select) dg() discordgo.MessageComponent {
+func (s *Select) Dg() discordgo.MessageComponent {
 	v := discordgo.SelectMenu{
 		Placeholder: s.Placeholder,
 		Options:     make([]discordgo.SelectMenuOption, len(s.Options)),
@@ -341,7 +341,7 @@ func (s *Select) dg() discordgo.MessageComponent {
 			Default:     opt.Default,
 		}
 		if opt.Emoji != nil {
-			v.Options[i].Emoji = opt.Emoji.dg()
+			v.Options[i].Emoji = opt.Emoji.Dg()
 		}
 	}
 	return v
