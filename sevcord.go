@@ -46,6 +46,7 @@ func New(token string) (*Sevcord, error) {
 	if err != nil {
 		return nil, err
 	}
+	dg.Identify.Intents = discordgo.IntentsNone
 	return &Sevcord{
 		lock:           &sync.RWMutex{},
 		dg:             dg,
@@ -126,7 +127,6 @@ func (s *Sevcord) Listen() {
 	}
 
 	// Open
-	s.dg.Identify.Intents = discordgo.IntentsNone
 	if s.messageHandler != nil {
 		s.dg.Identify.Intents |= discordgo.IntentsGuildMessages
 	}
