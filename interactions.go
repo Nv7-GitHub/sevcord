@@ -116,7 +116,7 @@ func (s *Sevcord) interactionHandler(dg *discordgo.Session, i *discordgo.Interac
 			}
 			v(ctx, parts[1])
 
-		case discordgo.SelectMenuComponent:
+		case discordgo.SelectMenuComponent, discordgo.ChannelSelectMenuComponent, discordgo.RoleSelectMenuComponent, discordgo.UserSelectMenuComponent, discordgo.MentionableSelectMenuComponent:
 			s.lock.RLock()
 			v, exists := s.selectHandlers[parts[0]]
 			s.lock.RUnlock()

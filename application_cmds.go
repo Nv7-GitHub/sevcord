@@ -283,7 +283,22 @@ func (b *Button) Dg() discordgo.MessageComponent {
 
 type SelectHandler func(ctx Ctx, params string, selected []string)
 
+type SelectKind int
+
+const (
+	SelectKindString SelectKind = iota
+	SelectKindUser
+	SelectKindRole
+	SelectKindMentionable // Users or Roles
+	SelectKindChannel
+)
+
+func (s SelectKind) Dg() discordgo.SelectMenuType {
+	return [...]discordgo.SelectMenuType{discordgo.StringSelectMenu, discordgo.UserSelectMenu, discordgo.RoleSelectMenu, discordgo.MentionableSelectMenu, discordgo.ChannelSelectMenu}[s]
+}
+
 type Select struct {
+	Kind        SelectKind
 	Placeholder string
 	Options     []SelectOption
 
@@ -295,6 +310,9 @@ type Select struct {
 	MinValues int
 	MaxValues int
 	Disabled  bool
+
+	// Fill this for channel select menu
+	ChannelFilter []discordgo.ChannelType
 }
 
 func NewSelect(placeholder string, handler string, params string) *Select {
@@ -306,6 +324,11 @@ func NewSelect(placeholder string, handler string, params string) *Select {
 		MinValues:   1,
 		MaxValues:   1,
 	}
+}
+
+func (s *Select) SetKind(kind SelectKind) *Select {
+	s.Kind = kind
+	return s
 }
 
 func (s *Select) Option(option SelectOption) *Select {
@@ -324,14 +347,21 @@ func (s *Select) SetDisabled(disabled bool) *Select {
 	return s
 }
 
+func (s *Select) ChannelMenuFilter(allowed ...discordgo.ChannelType) *Select {
+	s.ChannelFilter = allowed
+	return s
+}
+
 func (s *Select) Dg() discordgo.MessageComponent {
 	v := discordgo.SelectMenu{
-		Placeholder: s.Placeholder,
-		Options:     make([]discordgo.SelectMenuOption, len(s.Options)),
-		MinValues:   &s.MinValues,
-		MaxValues:   s.MaxValues,
-		Disabled:    s.Disabled,
-		CustomID:    s.Handler + componentSeperator + s.Params,
+		MenuType:     s.Kind.Dg(),
+		Placeholder:  s.Placeholder,
+		Options:      make([]discordgo.SelectMenuOption, len(s.Options)),
+		MinValues:    &s.MinValues,
+		MaxValues:    s.MaxValues,
+		Disabled:     s.Disabled,
+		CustomID:     s.Handler + componentSeperator + s.Params,
+		ChannelTypes: s.ChannelFilter,
 	}
 	for i, opt := range s.Options {
 		v.Options[i] = discordgo.SelectMenuOption{

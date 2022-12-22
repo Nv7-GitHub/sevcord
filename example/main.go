@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Nv7-Github/sevcord/v2"
+	"github.com/bwmarrin/discordgo"
 )
 
 //go:embed token.txt
@@ -44,7 +45,7 @@ func main() {
 		ctx.Acknowledge()
 		ctx.Respond(sevcord.NewMessage("Check out these select menus").
 			AddComponentRow(
-				sevcord.NewSelect("Select menu", "select", "").
+				sevcord.NewSelect("Select menu", "select", "String").
 					Option(sevcord.NewSelectOption("Option 1", "First option", "1")).
 					Option(sevcord.NewSelectOption("Option 2", "Second option", "2")).
 					Option(sevcord.NewSelectOption("Default", "This is already selected", "default").
@@ -53,6 +54,35 @@ func main() {
 					SetRange(0, 3), // Allows users to select unlimited instead of default of 1
 			),
 		)
+	}))
+	bot.RegisterSlashCommand(sevcord.NewSlashCommand("auto-select", "Auto-populated select menu demo", func(ctx sevcord.Ctx, a []any) {
+		ctx.Acknowledge()
+		ctx.Respond(sevcord.NewMessage("Check out these auto-populated select menus").
+			AddComponentRow(
+				sevcord.NewSelect("User menu", "user_select", "User").SetKind(sevcord.SelectKindUser).SetRange(0, 25),
+			).
+			AddComponentRow(
+				sevcord.NewSelect("Role menu", "role_select", "Role").
+					SetKind(sevcord.SelectKindRole).
+					SetRange(0, 25),
+			).
+			AddComponentRow(
+				sevcord.NewSelect("Mentionable menu", "userrole_select", "Mentionable").
+					SetKind(sevcord.SelectKindMentionable).
+					SetRange(0, 25),
+			).
+			AddComponentRow(
+				sevcord.NewSelect("Channel menu", "channel_select", "Channel").
+					SetKind(sevcord.SelectKindChannel).
+					ChannelMenuFilter(discordgo.ChannelTypeGuildText).
+					SetRange(0, 25),
+			).
+			AddComponentRow(
+				sevcord.NewSelect("Voice channel menu", "voice_select", "Voice").
+					SetKind(sevcord.SelectKindChannel).
+					ChannelMenuFilter(discordgo.ChannelTypeGuildVoice).
+					SetRange(0, 25),
+			))
 	}))
 	// Modal example
 	bot.RegisterSlashCommand(sevcord.NewSlashCommand("modal", "Modal demo", func(ctxV sevcord.Ctx, params []any) {
@@ -77,11 +107,16 @@ func main() {
 		}
 	})
 	// Select menu example handler
-	bot.AddSelectHandler("select", func(ctx sevcord.Ctx, params string, options []string) {
+	selectHandler := func(ctx sevcord.Ctx, params string, options []string) {
 		ctx.Acknowledge() // That way it makes a new ephemeral message instead of updating the original
-		err := ctx.Respond(sevcord.NewMessage(fmt.Sprintf("You Selected: `%v`", options)))
-		fmt.Println(err)
-	})
+		ctx.Respond(sevcord.NewMessage(fmt.Sprintf("You Selected: `%v` (Select Type: **%s**)", options, params)))
+	}
+	bot.AddSelectHandler("select", selectHandler)
+	bot.AddSelectHandler("user_select", selectHandler)
+	bot.AddSelectHandler("role_select", selectHandler)
+	bot.AddSelectHandler("userrole_select", selectHandler)
+	bot.AddSelectHandler("channel_select", selectHandler)
+	bot.AddSelectHandler("voice_select", selectHandler)
 	// Message handler
 	bot.SetMessageHandler(func(ctx sevcord.Ctx, content string) {
 		if content == "ping" {
