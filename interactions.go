@@ -6,11 +6,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func (s *Sevcord) checkMiddleware(ctx Ctx) bool {
+func (s *Sevcord) checkMiddleware(ctx Ctx, command string) bool {
 	s.lock.RLock()
 	for _, mid := range s.middleware {
 		s.lock.RUnlock()
-		if !mid(ctx) {
+		if !mid(ctx, command) {
 			return false
 		}
 		s.lock.RLock()
@@ -98,7 +98,7 @@ func (s *Sevcord) interactionHandler(dg *discordgo.Session, i *discordgo.Interac
 		}
 
 		// Check midleware
-		if s.checkMiddleware(ctx) {
+		if s.checkMiddleware(ctx, dat.Name) {
 			v.(*SlashCommand).Handler(ctx, pars)
 		}
 

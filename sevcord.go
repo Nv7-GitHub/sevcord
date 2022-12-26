@@ -14,7 +14,7 @@ import (
 var Logger = log.Default()
 
 // MiddlewareFunc accepts context and returns whether or not to continue
-type MiddlewareFunc func(ctx Ctx) (ok bool)
+type MiddlewareFunc func(ctx Ctx, command string) (ok bool)
 
 type MessageHandler func(ctx Ctx, content string)
 
