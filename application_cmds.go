@@ -22,8 +22,9 @@ func NewSlashCommandGroup(name string, description string, children ...SlashComm
 }
 
 // RequirePermissions accepts a discordgo permissions bit mask
-func (s *SlashCommandGroup) RequirePermissions(p int) {
+func (s *SlashCommandGroup) RequirePermissions(p int) *SlashCommandGroup {
 	s.Permissions = &p
+	return s
 }
 
 type SlashCommand struct {
@@ -39,8 +40,9 @@ func NewSlashCommand(name, description string, handler SlashCommandHandler, opti
 }
 
 // RequirePermissions accepts a discordgo permissions bit mask
-func (s *SlashCommand) RequirePermissions(p int) {
+func (s *SlashCommand) RequirePermissions(p int) *SlashCommand {
 	s.Permissions = &p
+	return s
 }
 
 func (s *SlashCommandGroup) name() string { return s.Name }
