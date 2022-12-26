@@ -80,6 +80,7 @@ func (s *SlashCommand) dg() *discordgo.ApplicationCommandOption {
 			Type:         opt.Kind.dg(),
 			Required:     opt.Required,
 			Autocomplete: opt.Autocomplete != nil,
+			ChannelTypes: opt.ChannelTypes,
 		}
 		if opt.Choices != nil {
 			opts[i].Choices = make([]*discordgo.ApplicationCommandOptionChoice, len(opt.Choices))
@@ -138,6 +139,8 @@ type Option struct {
 
 	Choices      []Choice            // Optional
 	Autocomplete AutocompleteHandler // Optional
+
+	ChannelTypes []discordgo.ChannelType
 }
 
 func NewOption(name, description string, kind OptionKind, required bool) Option {
@@ -154,6 +157,12 @@ func (o Option) AddChoices(c ...Choice) Option {
 
 func (o Option) AutoComplete(a AutocompleteHandler) Option {
 	o.Autocomplete = a
+	return o
+}
+
+// ChannelFilter allows specific channels to be shown in a channel option
+func (o Option) ChannelFilter(allowed ...discordgo.ChannelType) Option {
+	o.ChannelTypes = allowed
 	return o
 }
 
