@@ -130,6 +130,7 @@ func (s *Sevcord) interactionHandler(dg *discordgo.Session, i *discordgo.Interac
 	case discordgo.InteractionModalSubmit:
 		dat := i.ModalSubmitData()
 		ctx.component = true
+		ctx.modal = true
 		s.lock.RLock()
 		handler, exists := s.modalHandlers[dat.CustomID]
 		s.lock.RUnlock()

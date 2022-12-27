@@ -18,10 +18,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	// 1 in 2 chance of not being able to use bot
+	// 1 in 10 chance of not being able to use bot
 	rand.Seed(time.Now().UnixNano())
 	bot.AddMiddleware(func(ctx sevcord.Ctx, cmd string) bool {
-		v := rand.Intn(2)
+		v := rand.Intn(9)
 		if v == 0 {
 			ctx.Respond(sevcord.NewMessage("Unlucky"))
 			return false
