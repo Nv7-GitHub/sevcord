@@ -160,6 +160,8 @@ func (m MessageSend) AddFile(name, contentType string, reader io.Reader, size in
 		} else {
 			zw.Close()
 			reader = &buf
+			contentType = "application/gzip"
+			name = name + ".gz"
 		}
 	}
 	m.files = append(m.files, struct {
