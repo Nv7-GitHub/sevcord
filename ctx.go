@@ -1,6 +1,8 @@
 package sevcord
 
 import (
+	"bytes"
+	"compress/gzip"
 	"io"
 
 	"github.com/bwmarrin/discordgo"
@@ -144,7 +146,22 @@ func (m MessageSend) AddEmbed(embed EmbedBuilder) MessageSend {
 	return m
 }
 
-func (m MessageSend) AddFile(name, contentType string, reader io.Reader) MessageSend {
+const MaxFileSize = 26214400 // 25MB limit
+
+// AddFile adds a file to the message and will gzip it if it will not fit into the size limit. If 0 is passed to the `size` argument, size will be ignored.
+func (m MessageSend) AddFile(name, contentType string, reader io.Reader, size int) MessageSend {
+	if size > MaxFileSize { // Handle files above the size limit
+		var buf bytes.Buffer
+		zw := gzip.NewWriter(&buf)
+		zw.Name = name
+		_, err := io.Copy(zw, reader)
+		if err != nil {
+			Logger.Println("error gzipping file: ", err)
+		} else {
+			zw.Close()
+			reader = &buf
+		}
+	}
 	m.files = append(m.files, struct {
 		name        string
 		contentType string
