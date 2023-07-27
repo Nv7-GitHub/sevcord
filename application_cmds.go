@@ -91,6 +91,18 @@ func (s *SlashCommand) dg() *discordgo.ApplicationCommandOption {
 				}
 			}
 		}
+		if opt.MinVal != nil {
+			switch opt.Kind {
+			case OptionKindInt, OptionKindFloat:
+				opts[i].MinValue = opt.MinVal
+				opts[i].MaxValue = opt.MaxVal
+
+			case OptionKindString:
+				v := int(*opt.MinVal)
+				opts[i].MinLength = &v
+				opts[i].MaxLength = int(opt.MaxVal)
+			}
+		}
 	}
 	return &discordgo.ApplicationCommandOption{
 		Name:        s.Name,
@@ -140,6 +152,9 @@ type Option struct {
 	Choices      []Choice            // Optional
 	Autocomplete AutocompleteHandler // Optional
 
+	MinVal *float64
+	MaxVal float64
+
 	ChannelTypes []discordgo.ChannelType
 }
 
@@ -163,6 +178,13 @@ func (o Option) AutoComplete(a AutocompleteHandler) Option {
 // ChannelFilter allows specific channels to be shown in a channel option
 func (o Option) ChannelFilter(allowed ...discordgo.ChannelType) Option {
 	o.ChannelTypes = allowed
+	return o
+}
+
+// MinMax allows you to set the min and max values for number options, or the min and max length for string options. Use 0 for the max value to leave no upper limit
+func (o Option) MinMax(min, max float64) Option {
+	o.MinVal = &min
+	o.MaxVal = max
 	return o
 }
 
