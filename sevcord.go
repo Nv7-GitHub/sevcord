@@ -115,6 +115,9 @@ func (s *Sevcord) Listen() {
 	})
 	if s.messageHandler != nil {
 		s.dg.AddHandler(func(d *discordgo.Session, m *discordgo.MessageCreate) {
+			if m.Author == nil {
+				return // if the message was not successfully parsed, give up to avoid further damage
+			}
 			if m.Author.Bot {
 				return
 			}
